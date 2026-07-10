@@ -1,0 +1,260 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L05 Data & Messaging</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L05</p>
+    <h1>Talking to <span class="cy">databases</span>, caches &amp; queues.</h1>
+    <p class="lede">Postgres, Redis, and Kafka/RabbitMQ show up on nearly every listing — heaviest in PT/LU fintech. This is how Go connects to state without shooting itself in the foot.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P3</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#sql">database/sql</a></li>
+        <li><a href="#pool">Pools &amp; context</a></li>
+        <li><a href="#tx">Transactions</a></li>
+        <li><a href="#migrations">Migrations</a></li>
+        <li><a href="#redis">Redis caching</a></li>
+        <li><a href="#queues">Kafka &amp; RabbitMQ</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="sql">
+        <p class="eyebrow">Concept 1</p>
+        <h2>database/sql, the standard interface</h2>
+        <p>Go's <code>database/sql</code> is a driver-agnostic layer. For Postgres, the modern choice is <strong>pgx</strong> (used directly or via its <code>stdlib</code> adapter). Always use parameterized queries — the driver handles escaping.</p>
+<pre>row := db.<span class="fn">QueryRowContext</span>(ctx,
+    <span class="str">"SELECT temp_c, description FROM readings WHERE city = $1"</span>, city)
+<span class="kw">var</span> r Report
+<span class="kw">if</span> err := row.<span class="fn">Scan</span>(&amp;r.TempC, &amp;r.Desc); err != <span class="kw">nil</span> {
+    <span class="kw">if</span> errors.<span class="fn">Is</span>(err, sql.ErrNoRows) {
+        <span class="kw">return</span> Report{}, ErrNotFound   <span class="cm">// map to a domain error</span>
+    }
+    <span class="kw">return</span> Report{}, err
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Never build SQL with <code>fmt.Sprintf</code> and user input — that's SQL injection. Placeholders (<code>$1</code> for Postgres, <code>?</code> for MySQL) are non-negotiable. This is a guaranteed security-review flag.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="pool">
+        <p class="eyebrow">Concept 2</p>
+        <h2>Connection pools &amp; context</h2>
+        <p>An <code>*sql.DB</code> is <strong>not a connection</strong> — it's a pool, safe for concurrent use. Configure it, share one across your app, and always pass <code>ctx</code> so slow queries respect request timeouts (L02 + L03 come together here).</p>
+<pre>db.<span class="fn">SetMaxOpenConns</span>(<span class="ty">25</span>)                 <span class="cm">// cap DB load</span>
+db.<span class="fn">SetMaxIdleConns</span>(<span class="ty">25</span>)
+db.<span class="fn">SetConnMaxLifetime</span>(<span class="ty">5</span> * time.Minute)  <span class="cm">// recycle</span></pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Every <code>Rows</code> from <code>QueryContext</code> must be <code>defer rows.Close()</code>d, or you leak connections until the pool is exhausted and every request hangs. The single most common Go database bug in production.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="tx">
+        <p class="eyebrow">Concept 3</p>
+        <h2>Transactions done right</h2>
+        <p>Fintech means money moving atomically. The Go pattern uses <code>defer tx.Rollback()</code> as a safety net — it's a no-op after a successful <code>Commit</code>.</p>
+<pre>tx, err := db.<span class="fn">BeginTx</span>(ctx, <span class="kw">nil</span>)
+<span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+<span class="kw">defer</span> tx.<span class="fn">Rollback</span>()          <span class="cm">// safety net if we return early</span>
+
+<span class="kw">if</span> _, err = tx.<span class="fn">ExecContext</span>(ctx, debit, from); err != <span class="kw">nil</span> {
+    <span class="kw">return</span> err            <span class="cm">// deferred Rollback fires</span>
+}
+<span class="kw">if</span> _, err = tx.<span class="fn">ExecContext</span>(ctx, credit, to); err != <span class="kw">nil</span> {
+    <span class="kw">return</span> err
+}
+<span class="kw">return</span> tx.<span class="fn">Commit</span>()        <span class="cm">// Rollback after this is a no-op</span></pre>
+      </section>
+
+      <section class="mod" id="migrations">
+        <p class="eyebrow">Concept 4</p>
+        <h2>Schema migrations</h2>
+        <p>Schema changes are versioned files, applied in order, run in CI/CD before deploy. Tools: <code>golang-migrate</code>, <code>goose</code>, or <code>atlas</code>. Each migration has an up and a down.</p>
+<pre><span class="cm">-- 0002_add_readings.up.sql</span>
+<span class="kw">CREATE TABLE</span> readings (
+  id      BIGSERIAL PRIMARY KEY,
+  city    TEXT NOT NULL,
+  temp_c  NUMERIC NOT NULL,
+  taken_at TIMESTAMPTZ DEFAULT now()
+);</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Migrations must be <em>backward-compatible</em> during a rolling deploy — old and new code run simultaneously. Add a column before you use it; drop it a release later. "Expand then contract."</div>
+        </div>
+      </section>
+
+      <section class="mod" id="redis">
+        <p class="eyebrow">Concept 5</p>
+        <h2>Redis: the cache in front</h2>
+        <p>Weather data is expensive to fetch and fine slightly stale — a perfect cache candidate. The <strong>cache-aside</strong> pattern: look in Redis, miss → hit the source → store with a TTL.</p>
+<pre>val, err := rdb.<span class="fn">Get</span>(ctx, <span class="str">"weather:"</span>+city).<span class="fn">Result</span>()
+<span class="kw">if</span> err == redis.Nil {           <span class="cm">// cache miss</span>
+    report = <span class="fn">fetchFromSource</span>(ctx, city)
+    rdb.<span class="fn">Set</span>(ctx, <span class="str">"weather:"</span>+city, encode(report), <span class="ty">10</span>*time.Minute)
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Beware the <em>thundering herd</em>: when a hot key expires, thousands of requests miss at once and stampede the source. Mitigate with a short lock, request coalescing (<code>singleflight</code>), or jittered TTLs.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="queues">
+        <p class="eyebrow">Concept 6 · the fintech one</p>
+        <h2>Message queues: Kafka &amp; RabbitMQ</h2>
+        <p>Queues decouple services: a producer emits an event, consumers process it later, independently. <strong>Kafka</strong> = high-throughput event log (replayable, partitioned). <strong>RabbitMQ</strong> = flexible task/routing broker. Both appear across PT/LU listings.</p>
+<pre><span class="cm">// consumer loop — process, then acknowledge</span>
+<span class="kw">for</span> msg := <span class="kw">range</span> messages {
+    <span class="kw">if</span> err := <span class="fn">handle</span>(ctx, msg); err != <span class="kw">nil</span> {
+        <span class="cm">// don't ack — it'll be redelivered</span>
+        <span class="kw">continue</span>
+    }
+    msg.<span class="fn">Ack</span>()   <span class="cm">// only after success</span>
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">At-least-once &amp; idempotency</span>
+          <div>Most queues deliver <em>at least once</em> — a message can arrive twice (redelivery after a crash before ack). So consumers must be <strong>idempotent</strong>: processing the same event twice has the same effect as once (dedupe by event ID). This is the same idempotency idea from L03, now on the messaging side.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L03/L04.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L03/L04</span>
+          <p class="dq">Where should <code>*sql.DB</code> live in your service, and how does it reach a request handler?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            Open it <strong>once</strong> at startup (it's a pool, concurrency-safe) and inject it — typically into a repository struct that handlers hold a reference to via dependency injection. Configure it from <code>DATABASE_URL</code> (L04 config). Never <code>sql.Open</code> per request: you'd spawn pools endlessly and exhaust the database.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the bug</span>
+          <p class="dq">This handler works in tests but exhausts connections in production. Why?</p>
+<pre>rows, _ := db.<span class="fn">QueryContext</span>(ctx, <span class="str">"SELECT city FROM readings"</span>)
+<span class="kw">for</span> rows.<span class="fn">Next</span>() {
+    <span class="kw">var</span> c <span class="ty">string</span>
+    rows.<span class="fn">Scan</span>(&amp;c)
+    cities = <span class="fn">append</span>(cities, c)
+}
+<span class="kw">return</span> cities</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            <code>rows</code> is never closed. Each call holds its connection until GC eventually finalizes it — under load the pool drains and every request blocks waiting for a free connection. Fix: <code>defer rows.Close()</code> right after the query, and check <code>rows.Err()</code> after the loop. (Also: the query error is ignored.)
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">Your consumer crashes after doing the work but before <code>Ack()</code>. What happens, and why must handlers be idempotent?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            The broker never saw the ack, so it redelivers the message — the work runs a second time. With at-least-once delivery this is normal, not exceptional. If "the work" is "send a payment," a non-idempotent handler double-pays. Make it idempotent (e.g., record processed event IDs, or use upserts keyed by the event) so a duplicate is a safe no-op.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Spin up Postgres + Redis with <code>docker compose up</code> (ties to L04), point <code>DATABASE_URL</code> at it, insert a reading, and confirm a second identical request hits the cache — log a "HIT/MISS" line to prove it.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L05 · Data &amp; Messaging</b> — core in every market, heaviest in PT/LU fintech. Applied in Project P3.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

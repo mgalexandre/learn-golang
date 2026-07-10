@@ -1,0 +1,180 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — P02 Concurrent Fetcher</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--green);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,58px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:15ch;}
+  .hero h1 .cy{color:var(--green);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  main{padding:8px 0 60px;}
+  .step{padding:40px 0;border-top:1px solid var(--line);}
+  .step:first-child{border-top:0;}
+  .step-h{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;}
+  .step-n{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:var(--green);border-radius:8px;padding:4px 11px;font-variant-numeric:tabular-nums;flex:none;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(24px,4vw,31px);letter-spacing:-0.015em;line-height:1.12;margin:0;text-wrap:balance;}
+  main p{max-width:65ch;color:var(--ink);}
+  p.sub{color:var(--ink-soft);}
+  h3{font-family:var(--sans);font-weight:650;font-size:16px;margin:26px 0 4px;}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}pre .pr{color:var(--accent-bright);}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.grill{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.grill .tag{color:var(--accent);}
+  .callout.verify{background:var(--green-wash);border:1px solid color-mix(in srgb,var(--green) 34%,transparent);color:var(--ink);}
+  .callout.verify .tag{color:var(--green);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .goal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);margin:24px 0 8px;}
+  .goal h3{margin:0 0 10px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);}
+  .goal ul{margin:0;padding-left:20px;font-family:var(--sans);font-size:15px;color:var(--ink-soft);line-height:1.7;}
+  .goal ul code{background:var(--surface-2);color:var(--accent);padding:1px 5px;border-radius:4px;font-size:13px;}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot a{color:var(--accent);text-decoration:none;font-weight:600;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track B · Projects · P02 · intermediate</p>
+    <h1>A <span class="cy">concurrent</span> multi-city fetcher.</h1>
+    <p class="lede">Take P01's <code style="font-size:.8em">fetch</code> and run it across dozens of cities at once — safely bounded, with timeouts and clean partial-failure handling. Applies concept module <strong>L02 · Concurrency</strong>.</p>
+    <div class="meta-row">
+      <span class="chip">🔨 <b>Build module</b></span>
+      <span class="chip">📦 Applies <b>L02</b></span>
+      <span class="chip">⏱ <b>~90 min</b> hands-on</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <section class="step">
+      <div class="goal">
+        <h3>What you'll ship</h3>
+        <ul>
+          <li><code>weather London Lisbon Paris ...</code> fetched <strong>concurrently</strong></li>
+          <li>A bounded <strong>worker pool</strong> — never more than N in flight</li>
+          <li>A per-request <code>context</code> timeout so one slow city can't stall the batch</li>
+          <li>A rate limiter to stay under the API's cap</li>
+          <li>Partial results: one city failing doesn't sink the rest</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">01</span><h2>Make fetch context-aware</h2></div>
+      <p>First refactor P01's <code>fetch</code> to take a <code>context.Context</code> as its first parameter (the L02/L03 convention). This is what lets the caller impose a timeout.</p>
+<pre><span class="kw">func</span> <span class="fn">fetch</span>(ctx context.Context, city <span class="ty">string</span>) (Report, <span class="ty">error</span>) {
+    req, _ := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"GET"</span>, urlFor(city), <span class="kw">nil</span>)
+    resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
+    <span class="cm">// ... same decode as P01</span>
+}</pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Predict before building: if you give each city a 2-second timeout but run them sequentially, how long does a 30-city batch take worst case? And concurrently with a pool of 5? (That gap is the whole point of this project.)</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">02</span><h2>Build the worker pool</h2></div>
+      <p>Recreate the L02 pattern: a <code>jobs</code> channel of cities, N workers, a <code>results</code> channel. Bounding concurrency is what keeps you from opening 500 sockets at once.</p>
+<pre><span class="kw">type</span> <span class="ty">result</span> <span class="kw">struct</span>{ city <span class="ty">string</span>; report Report; err <span class="ty">error</span> }
+
+jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>)
+out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
+
+<span class="kw">var</span> wg sync.WaitGroup
+<span class="kw">for</span> i := <span class="ty">0</span>; i &lt; <span class="ty">5</span>; i++ {          <span class="cm">// 5 workers</span>
+    wg.<span class="fn">Add</span>(<span class="ty">1</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="kw">for</span> city := <span class="kw">range</span> jobs {
+            rep, err := <span class="fn">fetch</span>(ctx, city)
+            out &lt;- result{city, rep, err}   <span class="cm">// carry the error, don't crash</span>
+        }
+    }()
+}</pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Why send the <code>error</code> inside the <code>result</code> struct instead of logging it in the worker? (Answer: the collector decides how to report; a failed city becomes a row in the output, not a lost goroutine — that's "partial results.")</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">03</span><h2>Feed jobs, close, collect</h2></div>
+      <p>The classic choreography: a goroutine closes <code>out</code> once all workers finish, so the collector's <code>range</code> terminates cleanly.</p>
+<pre><span class="kw">go</span> <span class="kw">func</span>() {                     <span class="cm">// producer</span>
+    <span class="kw">for</span> _, c := <span class="kw">range</span> cities { jobs &lt;- c }
+    <span class="kw">close</span>(jobs)                    <span class="cm">// no more work → workers exit their range</span>
+}()
+<span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="kw">close</span>(out) }()  <span class="cm">// all done → stop the collector</span>
+
+<span class="kw">for</span> r := <span class="kw">range</span> out {           <span class="cm">// collect until out closes</span>
+    <span class="kw">if</span> r.err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="str">"%-10s ERROR: %v\n"</span>, r.city, r.err)
+        <span class="kw">continue</span>
+    }
+    fmt.<span class="fn">Printf</span>(<span class="str">"%-10s %s\n"</span>, r.city, r.report.Summary())
+}</pre>
+      <div class="callout verify">
+        <span class="tag">Verify</span>
+        <div>Run with a bad city mixed in: <code>go run . London NotACity Paris</code>. You should see two good rows and one <code>ERROR</code> row — proof that one failure doesn't abort the batch. Then <code>go run -race .</code> to confirm no data races on the shared channels.</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">04</span><h2>Add a rate limiter</h2></div>
+      <p>Free APIs cap requests. A <code>time.Ticker</code> (or <code>golang.org/x/time/rate</code>) throttles workers so you fetch, say, 5 per second regardless of pool size.</p>
+<pre>limiter := time.<span class="fn">NewTicker</span>(<span class="ty">200</span> * time.Millisecond)  <span class="cm">// ~5 req/s</span>
+<span class="kw">defer</span> limiter.<span class="fn">Stop</span>()
+<span class="cm">// inside the worker, before fetch:</span>
+&lt;-limiter.C   <span class="cm">// block until the next tick</span></pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Trade-off to reason about: more workers make you faster, but the rate limiter caps throughput anyway. So what's the <em>right</em> worker count? (Hint: enough to keep the limiter saturated while requests are in-flight, not more.)</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">05</span><h2>Consider errgroup</h2></div>
+      <p>Once you understand the manual version, meet <code>golang.org/x/sync/errgroup</code> — it bundles the WaitGroup, error propagation, and context cancellation. If one task fails, it can cancel the rest.</p>
+<pre>g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+g.<span class="fn">SetLimit</span>(<span class="ty">5</span>)                     <span class="cm">// built-in concurrency bound</span>
+<span class="kw">for</span> _, city := <span class="kw">range</span> cities {
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> { <span class="kw">return</span> <span class="fn">fetchInto</span>(ctx, city, &amp;results) })
+}
+err := g.<span class="fn">Wait</span>()   <span class="cm">// first non-nil error, or nil</span></pre>
+      <div class="callout verify">
+        <span class="tag">Ship checklist</span>
+        <div><code>go vet ./...</code> · <code>go test -race ./...</code> · time it: <code>time go run . &lt;20 cities&gt;</code> should be roughly (slowest city), not the sum. That speedup <em>is</em> the concurrency win — the thing interviewers want you to explain.</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">→</span><h2>Where this leads</h2></div>
+      <p class="sub">You've now applied every L02 concept under real constraints — the exact "scalable, resilient services" phrasing from the listings. Project <strong>P03</strong> puts this logic behind an HTTP + gRPC API with a Postgres cache, pulling in <strong>L03</strong> and <strong>L05</strong>.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>P02 · Concurrent Fetcher</b> — applies L02; feeds P03.</div>
+    <a href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>

@@ -1,0 +1,179 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — P01 Weather CLI</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--green);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,58px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:15ch;}
+  .hero h1 .cy{color:var(--green);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+
+  main{padding:8px 0 60px;}
+  .step{padding:40px 0;border-top:1px solid var(--line);}
+  .step:first-child{border-top:0;}
+  .step-h{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;}
+  .step-n{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:var(--green);border-radius:8px;padding:4px 11px;font-variant-numeric:tabular-nums;flex:none;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(24px,4vw,31px);letter-spacing:-0.015em;line-height:1.12;margin:0;text-wrap:balance;}
+  main p{max-width:65ch;color:var(--ink);}
+  p.sub{color:var(--ink-soft);}
+  h3{font-family:var(--sans);font-weight:650;font-size:16px;margin:26px 0 4px;}
+
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}pre .pr{color:var(--accent-bright);}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.grill{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.grill .tag{color:var(--accent);}
+  .callout.verify{background:var(--green-wash);border:1px solid color-mix(in srgb,var(--green) 34%,transparent);color:var(--ink);}
+  .callout.verify .tag{color:var(--green);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+
+  .goal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);margin:24px 0 8px;}
+  .goal h3{margin:0 0 10px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);}
+  .goal ul{margin:0;padding-left:20px;font-family:var(--sans);font-size:15px;color:var(--ink-soft);line-height:1.7;}
+  .goal ul code{background:var(--surface-2);color:var(--accent);padding:1px 5px;border-radius:4px;font-size:13px;}
+
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot a{color:var(--accent);text-decoration:none;font-weight:600;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track B · Projects · P01 · beginner</p>
+    <h1>Build a <span class="cy">Weather CLI</span> in Go.</h1>
+    <p class="lede">A hands-on build. You'll write every line yourself; this module gives the plan, the grilling, and the checkpoints. It applies concept module <strong>L01 · Foundations</strong>.</p>
+    <div class="meta-row">
+      <span class="chip">🔨 <b>Build module</b></span>
+      <span class="chip">📦 Applies <b>L01</b></span>
+      <span class="chip">⏱ <b>~60 min</b> hands-on</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <section class="step">
+      <div class="goal">
+        <h3>What you'll ship</h3>
+        <ul>
+          <li>A command <code>weather London</code> that prints live conditions</li>
+          <li>A real HTTP call, JSON decoded into a <code>struct</code></li>
+          <li>Honest error handling and a non-zero <strong>exit code</strong> on failure</li>
+          <li>A Go module you can <code>go build</code> into a single binary</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">01</span><h2>Scaffold the module</h2></div>
+      <p class="sub">Every Go project starts as a module. In your empty repo:</p>
+<pre><span class="pr">$</span> go mod init example/weather
+<span class="pr">$</span> touch main.go</pre>
+      <p>That <code>go.mod</code> file is your project's identity and dependency ledger — the equivalent of <code>package.json</code> or <code>requirements.txt</code>, but built into the toolchain.</p>
+      <div class="callout verify">
+        <span class="tag">Verify</span>
+        <div>Run <code>go run .</code> now. Empty <code>main.go</code> won't compile yet — read the error. Getting comfortable with Go's compiler messages early pays off all module long.</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">02</span><h2>Read the city from the CLI</h2></div>
+      <p>Before writing this, predict: with <code>go run . London</code>, which index of <code>os.Args</code> holds <code>"London"</code>? (Recall from L01: <code>[0]</code> is the program itself.)</p>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Design decision to defend before you code: what should happen when the user runs <code>weather</code> with <strong>no</strong> city? Print usage and exit non-zero? Default to a city? Decide now — that choice shapes your <code>main</code>.</div>
+      </div>
+<pre><span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="kw">if</span> <span class="fn">len</span>(os.Args) &lt; <span class="ty">2</span> {
+        fmt.<span class="fn">Fprintln</span>(os.Stderr, <span class="str">"usage: weather &lt;city&gt;"</span>)
+        os.<span class="fn">Exit</span>(<span class="ty">1</span>)   <span class="cm">// non-zero = failure, the Unix way</span>
+    }
+    city := os.Args[<span class="ty">1</span>]
+    <span class="cm">// ... next step wires the fetch</span>
+}</pre>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">03</span><h2>Call the weather API</h2></div>
+      <p>Use a free endpoint like <code>wttr.in</code> (no key needed) or Open-Meteo. The key learning here is the <strong>error idiom</strong> and <code>defer</code> from L01 — every I/O call returns an <code>error</code> you must handle.</p>
+<pre><span class="kw">func</span> <span class="fn">fetch</span>(city <span class="ty">string</span>) ([]<span class="ty">byte</span>, <span class="ty">error</span>) {
+    url := fmt.<span class="fn">Sprintf</span>(<span class="str">"https://wttr.in/%s?format=j1"</span>, city)
+    resp, err := http.<span class="fn">Get</span>(url)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"requesting weather: %w"</span>, err)
+    }
+    <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()   <span class="cm">// runs on return — no leaks</span>
+    <span class="kw">if</span> resp.StatusCode != <span class="ty">200</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"weather API returned %d"</span>, resp.StatusCode)
+    }
+    <span class="kw">return</span> io.<span class="fn">ReadAll</span>(resp.Body)
+}</pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Why return <code>([]byte, error)</code> instead of printing inside <code>fetch</code>? (Answer: separation of concerns — <code>fetch</code> gets data, <code>main</code> decides how to present and how to fail. This is what makes it testable in Project P3.)</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">04</span><h2>Decode JSON into a struct</h2></div>
+      <p>This is the L01 payoff: <strong>struct tags</strong>. The API returns nested JSON; you model only the fields you need and tag them to match.</p>
+<pre><span class="kw">type</span> <span class="ty">Report</span> <span class="kw">struct</span> {
+    Current []<span class="kw">struct</span> {
+        TempC <span class="ty">string</span> <span class="cm">`json:"temp_C"`</span>
+        Desc  []<span class="kw">struct</span>{ Value <span class="ty">string</span> <span class="cm">`json:"value"`</span> } <span class="cm">`json:"weatherDesc"`</span>
+    } <span class="cm">`json:"current_condition"`</span>
+}
+
+<span class="kw">var</span> r <span class="ty">Report</span>
+<span class="kw">if</span> err := json.<span class="fn">Unmarshal</span>(data, &amp;r); err != <span class="kw">nil</span> {
+    <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"decoding response: %w"</span>, err)
+}</pre>
+      <div class="callout verify">
+        <span class="tag">Verify</span>
+        <div><code>go run . London</code> should now print a real temperature. If you get a zero value where data should be, your struct tag doesn't match the JSON key — inspect the raw response with <code>go run . London | head</code> temporarily.</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">05</span><h2>Present &amp; ship</h2></div>
+      <p>Format the output, exit non-zero on any error, then build a real binary.</p>
+<pre><span class="pr">$</span> go build -o weather .
+<span class="pr">$</span> ./weather Lisbon
+Lisbon: 24°C, Sunny
+<span class="pr">$</span> echo $?      <span class="cm"># 0 on success, 1 on failure</span></pre>
+      <div class="callout verify">
+        <span class="tag">Ship checklist</span>
+        <div><code>gofmt -w .</code> (canonical formatting) · <code>go vet ./...</code> (catches bugs) · try an invalid city and confirm you get a clean error + non-zero exit, not a panic.</div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-h"><span class="step-n">→</span><h2>Where this leads</h2></div>
+      <p class="sub">You now have the shape of every Go program: parse input → do I/O with explicit errors → decode → present. Project <strong>P02</strong> takes this exact <code>fetch</code> and runs it across many cities at once with a worker pool — bringing in concept module <strong>L02 · Concurrency</strong>.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>P01 · Weather CLI</b> — Learn Go by Building. Applies L01; feeds P02.</div>
+    <a href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>

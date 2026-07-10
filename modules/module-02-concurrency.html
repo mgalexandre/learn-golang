@@ -1,0 +1,300 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L02 Concurrency</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L02</p>
+    <h1>Concurrency, the skill every listing <span class="cy">actually tests.</span></h1>
+    <p class="lede">Goroutines, channels, <code style="font-size:.8em">select</code>, <code style="font-size:.8em">sync</code>, and <code style="font-size:.8em">context</code>. Concurrency is Go's headline feature — and the thing interviewers in all five markets probe hardest.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~35 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P2</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#goroutines">Goroutines</a></li>
+        <li><a href="#channels">Channels</a></li>
+        <li><a href="#select">select</a></li>
+        <li><a href="#sync">sync &amp; races</a></li>
+        <li><a href="#context">context</a></li>
+        <li><a href="#pool">Worker pool</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="goroutines">
+        <p class="eyebrow">Concept 1</p>
+        <h2>Goroutines: cheap, not free</h2>
+        <p>A goroutine is a function scheduled by the Go runtime, not the OS. It starts at a few KB of stack and grows on demand, so you can run hundreds of thousands. You launch one with <code>go</code>:</p>
+<pre><span class="kw">go</span> <span class="fn">fetch</span>(<span class="str">"London"</span>)   <span class="cm">// runs concurrently; main does NOT wait</span>
+fmt.<span class="fn">Println</span>(<span class="str">"kicked off"</span>)</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>When <code>main</code> returns, the program exits — <strong>even if goroutines are still running</strong>. A bare <code>go f()</code> with nothing to wait on often prints nothing. You need a way to <em>wait</em> (a channel or <code>sync.WaitGroup</code>).</div>
+        </div>
+        <p class="from-lang">↳ Coming from JS: this is not <code>async/await</code>. There's no event loop and no promise — a goroutine is genuinely parallel across CPU cores.</p>
+      </section>
+
+      <section class="mod" id="channels">
+        <p class="eyebrow">Concept 2</p>
+        <h2>Channels: how goroutines talk</h2>
+        <p>Instead of sharing memory and locking it, Go's motto is <em>"share memory by communicating."</em> A channel is a typed pipe. Send with <code>ch &lt;- v</code>, receive with <code>v := &lt;-ch</code>.</p>
+<pre>results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>)   <span class="cm">// unbuffered</span>
+
+<span class="kw">go</span> <span class="kw">func</span>() {
+    results &lt;- <span class="fn">fetch</span>(<span class="str">"London"</span>)  <span class="cm">// blocks until someone receives</span>
+}()
+
+msg := &lt;-results             <span class="cm">// blocks until a value arrives</span>
+fmt.<span class="fn">Println</span>(msg)</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>An <strong>unbuffered</strong> channel is a rendezvous: send and receive happen together, synchronizing the two goroutines. A <strong>buffered</strong> channel — <code>make(chan string, 5)</code> — only blocks the sender when the buffer is full. Use buffering to decouple producer and consumer speed.</div>
+        </div>
+        <p>Close a channel when no more values will be sent. Ranging over it then drains cleanly:</p>
+<pre><span class="kw">close</span>(results)
+<span class="kw">for</span> msg := <span class="kw">range</span> results {  <span class="cm">// exits when channel is closed &amp; empty</span>
+    fmt.<span class="fn">Println</span>(msg)
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Sending on a <strong>closed</strong> channel panics. Closing a channel <em>twice</em> panics. The rule: only the <strong>sender</strong> closes, and only once. Receivers use the comma-ok form <code>v, ok := &lt;-ch</code> to detect closure.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="select">
+        <p class="eyebrow">Concept 3</p>
+        <h2>select: waiting on many things</h2>
+        <p><code>select</code> blocks until one of several channel operations is ready — the concurrency equivalent of <code>switch</code>. It's how you add timeouts and cancellation.</p>
+<pre><span class="kw">select</span> {
+<span class="kw">case</span> msg := &lt;-results:
+    fmt.<span class="fn">Println</span>(<span class="str">"got"</span>, msg)
+<span class="kw">case</span> &lt;-time.<span class="fn">After</span>(<span class="ty">2</span> * time.Second):
+    fmt.<span class="fn">Println</span>(<span class="str">"timed out"</span>)   <span class="cm">// don't wait forever</span>
+<span class="kw">default</span>:
+    fmt.<span class="fn">Println</span>(<span class="str">"nothing ready"</span>)   <span class="cm">// makes select non-blocking</span>
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>A <code>select</code> with a <code>time.After</code> case is the canonical timeout pattern. Add a <code>default</code> case and <code>select</code> stops blocking entirely — useful for "try to send, but drop it if nobody's listening."</div>
+        </div>
+      </section>
+
+      <section class="mod" id="sync">
+        <p class="eyebrow">Concept 4</p>
+        <h2>sync, and the race you can't see</h2>
+        <p>Sometimes you really do share memory — a counter, a cache. Two goroutines touching the same variable, at least one writing, is a <strong>data race</strong>: undefined behavior. Go ships a detector: <code>go run -race .</code></p>
+<pre><span class="kw">var</span> (
+    mu    sync.Mutex
+    count <span class="ty">int</span>
+)
+<span class="kw">func</span> <span class="fn">incr</span>() {
+    mu.<span class="fn">Lock</span>()
+    count++          <span class="cm">// critical section — one goroutine at a time</span>
+    mu.<span class="fn">Unlock</span>()
+}</pre>
+        <p>To wait for a batch of goroutines, use <code>sync.WaitGroup</code>:</p>
+<pre><span class="kw">var</span> wg sync.WaitGroup
+<span class="kw">for</span> _, city := <span class="kw">range</span> cities {
+    wg.<span class="fn">Add</span>(<span class="ty">1</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="fn">fetch</span>(city)   <span class="cm">// Go 1.22+: loop var is safe to capture</span>
+    }()
+}
+wg.<span class="fn">Wait</span>()   <span class="cm">// blocks until every Done() is called</span></pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Before Go 1.22, capturing the loop variable <code>city</code> in the goroutine was the most infamous Go bug — every goroutine saw the <em>last</em> value. Go 1.22+ makes each iteration its own variable, so this is finally safe. Know this: interviewers still ask about it.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="context">
+        <p class="eyebrow">Concept 5 · the production one</p>
+        <h2>context: cancellation &amp; deadlines</h2>
+        <p>Every real Go service threads a <code>context.Context</code> through its call chain. It carries cancellation, deadlines, and request-scoped values. When a request is cancelled (client hangs up, timeout hits), the context's <code>Done()</code> channel closes and every goroutine downstream can bail out.</p>
+<pre>ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="ty">3</span>*time.Second)
+<span class="kw">defer</span> cancel()   <span class="cm">// always cancel to release resources</span>
+
+req, _ := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"GET"</span>, url, <span class="kw">nil</span>)
+resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
+<span class="kw">if</span> err != <span class="kw">nil</span> {
+    <span class="cm">// if ctx expired, err wraps context.DeadlineExceeded</span>
+    <span class="kw">return</span> err
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Convention: <code>ctx context.Context</code> is the <strong>first parameter</strong> of any function that does I/O or blocks. Never store a context in a struct. Always call the <code>cancel</code> func (a <code>defer cancel()</code> right after creation). This pattern shows up in nearly every job description as "context-aware services."</div>
+        </div>
+      </section>
+
+      <section class="mod" id="pool">
+        <p class="eyebrow">Putting it together</p>
+        <h2>The worker pool</h2>
+        <p>This is the pattern behind Project P2, and a favorite whiteboard question: bounded concurrency. Instead of one goroutine per task (unbounded), you run <em>N</em> workers pulling from a jobs channel.</p>
+<pre>jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, len(cities))
+out  := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, len(cities))
+
+<span class="kw">for</span> w := <span class="ty">0</span>; w &lt; <span class="ty">4</span>; w++ {          <span class="cm">// 4 workers, not 10000</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">for</span> city := <span class="kw">range</span> jobs {       <span class="cm">// pull until jobs closes</span>
+            out &lt;- <span class="fn">fetch</span>(city)
+        }
+    }()
+}
+<span class="kw">for</span> _, c := <span class="kw">range</span> cities { jobs &lt;- c }
+<span class="kw">close</span>(jobs)                          <span class="cm">// tells workers: no more work</span>
+<span class="kw">for</span> i := <span class="ty">0</span>; i &lt; len(cities); i++ { fmt.<span class="fn">Println</span>(&lt;-out) }</pre>
+        <div class="callout idiom">
+          <span class="tag">Why it matters</span>
+          <div>Real APIs rate-limit you. A worker pool caps how many requests fly at once — the difference between "fast" and "banned." Bounded concurrency + <code>context</code> timeouts is exactly what "scalable, resilient services" means on a Go job spec.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 revisits Module 01 — spaced repetition is intentional.</p>
+
+        <div class="drill">
+          <span class="dkind">Predict the output · recalls L01</span>
+          <p class="dq">What does this print, and why is it a trap?</p>
+<pre><span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="kw">go</span> fmt.<span class="fn">Println</span>(<span class="str">"hello from goroutine"</span>)
+    fmt.<span class="fn">Println</span>(<span class="str">"hello from main"</span>)
+}</pre>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            <span class="out-lbl">output →</span> usually just <code>hello from main</code>. <code>main</code> returns before the goroutine is scheduled, so the program exits and the goroutine never runs. It's a <em>race with the exit</em> — output is non-deterministic. Fix: a <code>WaitGroup</code> or a channel receive.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the bug</span>
+          <p class="dq">This deadlocks. What's wrong?</p>
+<pre><span class="kw">func</span> <span class="fn">main</span>() {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>)
+    ch &lt;- <span class="ty">42</span>          <span class="cm">// send</span>
+    fmt.<span class="fn">Println</span>(&lt;-ch)   <span class="cm">// receive</span>
+}</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            <span class="out-lbl">panic →</span> <code>fatal error: all goroutines are asleep - deadlock!</code><br>
+            An unbuffered channel needs a sender <em>and</em> receiver ready at the same time. Here <code>main</code> blocks on the send forever — there's no other goroutine to receive. Fix: send from a separate goroutine, <em>or</em> make it buffered (<code>make(chan int, 1)</code>).
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">When would you reach for a <code>Mutex</code> instead of a channel?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            Channels shine for <em>transferring ownership</em> of data or coordinating flow (pipelines, worker pools). A <code>Mutex</code> is simpler and faster when you're just guarding shared state in place — a counter, a map cache — and there's no handoff. Rule of thumb: "channels for communication, mutexes for state." Overusing channels for simple counters is a common over-engineering smell.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Prove a race exists before you trust the fix: write two goroutines incrementing a shared <code>int</code> without a lock, run <code>go run -race .</code>, read the report, then add the <code>Mutex</code> and watch it go green.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L02 · Concurrency</b> — Learn Go by Building. Concept demand: core requirement in all five surveyed markets.</div>
+    <a class="next" href="./index.html">← Back to the curriculum · next up L03 APIs →</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

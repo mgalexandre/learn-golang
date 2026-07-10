@@ -1,0 +1,260 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L06 Testing & Observability</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L06</p>
+    <h1>Testing &amp; <span class="cy">observability</span>: proving it works, in prod.</h1>
+    <p class="lede">"Reliability, observability, and security best practices" is a direct quote from the Lisbon listings. Go's testing is built in and excellent; observability is the three pillars — logs, metrics, traces.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P4</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#table">Table-driven tests</a></li>
+        <li><a href="#mocks">Mocking via interfaces</a></li>
+        <li><a href="#httptest">Testing handlers</a></li>
+        <li><a href="#bench">Benchmarks &amp; race</a></li>
+        <li><a href="#logs">Structured logs</a></li>
+        <li><a href="#metrics">Metrics &amp; traces</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="table">
+        <p class="eyebrow">Concept 1</p>
+        <h2>Table-driven tests</h2>
+        <p>Testing is in the standard library — no framework, files end in <code>_test.go</code>, run with <code>go test ./...</code>. The idiomatic style is a table of cases looped with subtests.</p>
+<pre><span class="kw">func</span> <span class="fn">TestCelsiusToF</span>(t *testing.T) {
+    tests := []<span class="kw">struct</span>{
+        name string; in, want <span class="ty">float64</span>
+    }{
+        {<span class="str">"freezing"</span>, <span class="ty">0</span>, <span class="ty">32</span>},
+        {<span class="str">"boiling"</span>,  <span class="ty">100</span>, <span class="ty">212</span>},
+        {<span class="str">"negative"</span>, <span class="ty">-40</span>, <span class="ty">-40</span>},
+    }
+    <span class="kw">for</span> _, tc := <span class="kw">range</span> tests {
+        t.<span class="fn">Run</span>(tc.name, <span class="kw">func</span>(t *testing.T) {   <span class="cm">// subtest per case</span>
+            <span class="kw">if</span> got := <span class="fn">toF</span>(tc.in); got != tc.want {
+                t.<span class="fn">Errorf</span>(<span class="str">"toF(%v) = %v, want %v"</span>, tc.in, got, tc.want)
+            }
+        })
+    }
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div><code>t.Run</code> gives each case its own name in the output and lets you run one with <code>go test -run TestCelsiusToF/boiling</code>. Add a case by adding a row — that's the whole appeal.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="mocks">
+        <p class="eyebrow">Concept 2 · why L01 interfaces mattered</p>
+        <h2>Mocking through interfaces</h2>
+        <p>Remember "accept interfaces" from L01? This is the payoff. If your service depends on an interface, tests can pass a fake — no network, no database, fast and deterministic.</p>
+<pre><span class="kw">type</span> <span class="ty">Fetcher</span> <span class="kw">interface</span> {
+    <span class="fn">Fetch</span>(ctx context.Context, city <span class="ty">string</span>) (Report, <span class="ty">error</span>)
+}
+<span class="cm">// in the test: a fake that implements Fetcher</span>
+<span class="kw">type</span> <span class="ty">fakeFetcher</span> <span class="kw">struct</span>{ report Report; err <span class="ty">error</span> }
+<span class="kw">func</span> (f fakeFetcher) <span class="fn">Fetch</span>(context.Context, <span class="ty">string</span>) (Report, <span class="ty">error</span>) {
+    <span class="kw">return</span> f.report, f.err
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Because Go interfaces are satisfied <em>implicitly</em>, you don't need a mocking library — a struct with the right methods just works. Inject the fake to test error paths (timeout, 500) that are painful to trigger against a real dependency.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="httptest">
+        <p class="eyebrow">Concept 3</p>
+        <h2>Testing HTTP handlers</h2>
+        <p><code>net/http/httptest</code> spins up handlers in-memory — no real port. This tests the L03 layer end to end, fast.</p>
+<pre>req := httptest.<span class="fn">NewRequest</span>(<span class="str">"GET"</span>, <span class="str">"/weather/London"</span>, <span class="kw">nil</span>)
+rec := httptest.<span class="fn">NewRecorder</span>()
+handler.<span class="fn">ServeHTTP</span>(rec, req)
+
+<span class="kw">if</span> rec.Code != http.StatusOK {
+    t.<span class="fn">Errorf</span>(<span class="str">"status = %d, want 200"</span>, rec.Code)
+}</pre>
+      </section>
+
+      <section class="mod" id="bench">
+        <p class="eyebrow">Concept 4</p>
+        <h2>Benchmarks &amp; the race detector</h2>
+        <p>Go benchmarks live beside tests and measure allocations too. And <code>-race</code> is your L02 safety harness — run it in CI.</p>
+<pre><span class="kw">func</span> <span class="fn">BenchmarkDecode</span>(b *testing.B) {
+    <span class="kw">for</span> i := <span class="ty">0</span>; i &lt; b.N; i++ { <span class="fn">decode</span>(payload) }
+}
+<span class="cm">// go test -bench . -benchmem    → ns/op and allocs/op</span>
+<span class="cm">// go test -race ./...           → catches data races</span></pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Aim for meaningful coverage, not 100%. <code>go test -cover</code> reports it, but a test that asserts nothing inflates the number without protecting anything. Cover the branches that matter: error paths, edge cases, concurrency.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="logs">
+        <p class="eyebrow">Concept 5 · pillar one</p>
+        <h2>Structured logging with slog</h2>
+        <p>Go 1.21+ ships <code>log/slog</code> — structured, leveled logging. In production you emit JSON so log aggregators (CloudWatch, Loki, Datadog) can index fields.</p>
+<pre>logger := slog.<span class="fn">New</span>(slog.<span class="fn">NewJSONHandler</span>(os.Stdout, <span class="kw">nil</span>))
+logger.<span class="fn">Info</span>(<span class="str">"weather served"</span>,
+    <span class="str">"city"</span>, city,
+    <span class="str">"duration_ms"</span>, ms,
+    <span class="str">"cache"</span>, <span class="str">"hit"</span>)   <span class="cm">// key/value pairs, not string soup</span></pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Attach a request ID to a logger and pass it via context so every line for one request is correlated. Structured fields let you query "all requests where <code>duration_ms &gt; 500</code>" — impossible with free-text logs.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="metrics">
+        <p class="eyebrow">Concept 6 · pillars two &amp; three</p>
+        <h2>Metrics &amp; distributed tracing</h2>
+        <p>Three pillars: <strong>logs</strong> (events), <strong>metrics</strong> (aggregatable numbers), <strong>traces</strong> (one request across services). Prometheus is the metrics standard; OpenTelemetry is the vendor-neutral tracing standard.</p>
+<pre><span class="cm">// Prometheus: a counter + a histogram</span>
+requests := prometheus.<span class="fn">NewCounterVec</span>(...)   <span class="cm">// count by route+status</span>
+latency  := prometheus.<span class="fn">NewHistogramVec</span>(...) <span class="cm">// p50/p95/p99</span>
+<span class="cm">// expose /metrics; Prometheus scrapes it</span></pre>
+        <div class="callout idiom">
+          <span class="tag">The RED method</span>
+          <div>For every service, track <strong>R</strong>ate (requests/sec), <strong>E</strong>rrors (failure %), and <strong>D</strong>uration (latency percentiles). Those three, plus a trace to drill into a slow request, are what "observability" means on a job spec — and what you'll wire up in Project P4.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L01 &amp; L05.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L01/L05</span>
+          <p class="dq">Your service struct holds a real Postgres <code>*Repo</code>. How do you unit-test its logic without a database?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            Depend on an <em>interface</em> (e.g. <code>ReadingStore</code>), not the concrete <code>*Repo</code>. In production inject the Postgres implementation; in tests inject a fake struct that implements the same methods and returns canned data or errors. This is why "accept interfaces" (L01) is a testability decision, not a style one.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the weakness</span>
+          <p class="dq">A colleague reports "90% coverage" on this test. What's wrong?</p>
+<pre><span class="kw">func</span> <span class="fn">TestFetch</span>(t *testing.T) {
+    r, err := <span class="fn">Fetch</span>(ctx, <span class="str">"London"</span>)
+    _ = r
+    _ = err
+}</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            It asserts nothing — it calls the code (so lines are "covered") but never checks the result or the error. Coverage measures lines executed, not behavior verified. It would pass even if <code>Fetch</code> returned garbage. Real tests assert on <code>r</code> and handle <code>err</code> with <code>t.Fatal</code>/<code>t.Errorf</code>.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">You have logs. Why also add metrics and traces — isn't that redundant?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            They answer different questions. <strong>Metrics</strong> tell you <em>that</em> something's wrong cheaply and in aggregate ("error rate spiked to 5%") — you can't afford to log-scan for that at scale. <strong>Traces</strong> tell you <em>where</em> in a multi-service request the time or failure went. <strong>Logs</strong> give the detailed <em>why</em> for a specific event. Together they take you from "alert" → "which service" → "exact cause."
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Run <code>go test -race -cover ./...</code> on your project. Then add a <code>/metrics</code> endpoint, hit your API a few times, and <code>curl localhost:8080/metrics</code> to watch the request counter tick up — observability you can see.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L06 · Testing &amp; Observability</b> — "reliability &amp; observability best practices," straight from the listings. Applied in Project P4.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

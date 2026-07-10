@@ -1,0 +1,260 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L04 Containers & Cloud</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L04</p>
+    <h1>Containers, Kubernetes &amp; the <span class="cy">cloud</span> around your binary.</h1>
+    <p class="lede">Every listing says "cloud-native." Go's single static binary makes it the easiest language to containerize well. Here's Docker, Kubernetes, CI/CD, and AWS — from a Go engineer's angle.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P4</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#docker">Docker for Go</a></li>
+        <li><a href="#config">12-factor config</a></li>
+        <li><a href="#k8s">Kubernetes basics</a></li>
+        <li><a href="#probes">Probes &amp; limits</a></li>
+        <li><a href="#cicd">CI/CD</a></li>
+        <li><a href="#aws">Cloud &amp; AWS</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="docker">
+        <p class="eyebrow">Concept 1</p>
+        <h2>The multi-stage Dockerfile</h2>
+        <p>Go compiles to one static binary — so your final image can be almost empty. Build in a Go image, copy just the binary into a tiny base.</p>
+<pre><span class="cm"># stage 1: build</span>
+<span class="kw">FROM</span> golang:1.25 <span class="kw">AS</span> build
+<span class="kw">WORKDIR</span> /src
+<span class="kw">COPY</span> go.mod go.sum ./
+<span class="kw">RUN</span> go mod download          <span class="cm"># cached layer</span>
+<span class="kw">COPY</span> . .
+<span class="kw">RUN</span> CGO_ENABLED=0 go build -o /app ./cmd/server
+
+<span class="cm"># stage 2: run — tiny &amp; secure</span>
+<span class="kw">FROM</span> gcr.io/distroless/static
+<span class="kw">COPY</span> --from=build /app /app
+<span class="kw">USER</span> nonroot:nonroot
+<span class="kw">ENTRYPOINT</span> [<span class="str">"/app"</span>]</pre>
+        <div class="callout idiom">
+          <span class="tag">Why it matters</span>
+          <div><code>CGO_ENABLED=0</code> makes a fully static binary so it runs on <code>distroless/static</code> or <code>scratch</code> — a ~10&nbsp;MB image with no shell, no OS packages, tiny attack surface. Copying <code>go.mod</code> first caches dependency downloads across builds.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="config">
+        <p class="eyebrow">Concept 2</p>
+        <h2>Config from the environment</h2>
+        <p>Containers are immutable; configuration comes from the environment (the 12-factor rule). Read it at startup, fail fast if required values are missing.</p>
+<pre>port := os.<span class="fn">Getenv</span>(<span class="str">"PORT"</span>)
+<span class="kw">if</span> port == <span class="str">""</span> { port = <span class="str">"8080"</span> }          <span class="cm">// sensible default</span>
+dsn := os.<span class="fn">Getenv</span>(<span class="str">"DATABASE_URL"</span>)
+<span class="kw">if</span> dsn == <span class="str">""</span> { log.<span class="fn">Fatal</span>(<span class="str">"DATABASE_URL required"</span>) }  <span class="cm">// fail fast</span></pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Never bake secrets into the image. In Kubernetes, inject them via <code>Secret</code> objects mounted as env vars; in AWS, use Secrets Manager / SSM Parameter Store. A committed <code>DATABASE_URL</code> with a password is the classic security-review finding.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="k8s">
+        <p class="eyebrow">Concept 3</p>
+        <h2>Kubernetes in one breath</h2>
+        <p>You rarely write raw k8s from scratch as a backend dev, but you must read it. The unit is a <strong>Pod</strong> (your container); a <strong>Deployment</strong> keeps N replicas running; a <strong>Service</strong> gives them a stable address.</p>
+<pre><span class="kw">apiVersion:</span> apps/v1
+<span class="kw">kind:</span> Deployment
+<span class="kw">spec:</span>
+  replicas: <span class="ty">3</span>
+  template:
+    spec:
+      containers:
+        - name: weather
+          image: registry/weather:v1.4.0
+          ports: [{ containerPort: <span class="ty">8080</span> }]</pre>
+      </section>
+
+      <section class="mod" id="probes">
+        <p class="eyebrow">Concept 4 · the interview favorite</p>
+        <h2>Probes &amp; resource limits</h2>
+        <p>Kubernetes needs to know if your app is alive and ready. This is where your <code>/healthz</code> endpoint from L03 earns its keep.</p>
+<pre>          livenessProbe:                <span class="cm"># restart if this fails</span>
+            httpGet: { path: /healthz, port: <span class="ty">8080</span> }
+          readinessProbe:               <span class="cm"># remove from load balancer if not ready</span>
+            httpGet: { path: /readyz,  port: <span class="ty">8080</span> }
+          resources:
+            requests: { cpu: <span class="str">"100m"</span>, memory: <span class="str">"64Mi"</span> }
+            limits:   { cpu: <span class="str">"500m"</span>, memory: <span class="str">"256Mi"</span> }</pre>
+        <div class="callout idiom">
+          <span class="tag">Liveness vs readiness</span>
+          <div><strong>Liveness</strong> = "am I deadlocked? restart me." <strong>Readiness</strong> = "can I serve traffic right now?" — return not-ready while warming up or if the DB is down, and k8s stops routing to you without killing you. Confusing the two causes restart loops. Expect this question.</div>
+        </div>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Memory <strong>limits</strong> matter for Go: exceed the limit and the container is OOM-killed. Set <code>GOMEMLIMIT</code> (Go 1.19+) near the container limit so the garbage collector works harder <em>before</em> the kernel kills you.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="cicd">
+        <p class="eyebrow">Concept 5</p>
+        <h2>CI/CD: the pipeline</h2>
+        <p>Every commit should test, vet, build, and (on main) ship. A minimal GitHub Actions pipeline for Go:</p>
+<pre>- <span class="kw">run:</span> go vet ./...
+- <span class="kw">run:</span> go test -race -cover ./...
+- <span class="kw">run:</span> go build -o app ./cmd/server
+- <span class="kw">run:</span> docker build -t registry/weather:${{ github.sha }} .
+- <span class="kw">run:</span> docker push registry/weather:${{ github.sha }}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Run tests with <code>-race</code> in CI — the detector catches concurrency bugs (L02) that pass locally. Tag images with the git SHA for traceable, rollback-able deploys.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="aws">
+        <p class="eyebrow">Concept 6</p>
+        <h2>The cloud, mostly AWS</h2>
+        <p>UK and NL listings lean AWS hardest. As a Go dev you'll meet: <strong>ECS/EKS</strong> (run containers), <strong>RDS</strong> (managed Postgres), <strong>S3</strong> (blobs), <strong>SQS/SNS</strong> (queues), <strong>CloudWatch</strong> (logs/metrics). The AWS SDK for Go v2 is the client.</p>
+<pre>cfg, _ := config.<span class="fn">LoadDefaultConfig</span>(ctx)   <span class="cm">// creds from env/role</span>
+s3c := s3.<span class="fn">NewFromConfig</span>(cfg)
+_, err := s3c.<span class="fn">PutObject</span>(ctx, &amp;s3.PutObjectInput{...})</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>In production, don't use access keys — attach an IAM <em>role</em> to the task/pod and the SDK picks up temporary credentials automatically. "Least-privilege IAM" is a phrase worth understanding for interviews.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L03.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L03</span>
+          <p class="dq">Your readiness probe hits <code>/readyz</code>. What should that handler actually check — and how does it differ from <code>/healthz</code>?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            <code>/healthz</code> (liveness) should be cheap and almost always return 200 — it only says "the process isn't wedged." <code>/readyz</code> (readiness) should verify dependencies you need to serve: can you ping the DB? is the cache reachable? Return 503 from <code>/readyz</code> when a dependency is down, and k8s pulls you from the load balancer without restarting you.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the flaw</span>
+          <p class="dq">Why is this Dockerfile a bad idea for a Go service?</p>
+<pre><span class="kw">FROM</span> golang:1.25
+<span class="kw">COPY</span> . .
+<span class="kw">RUN</span> go build -o app .
+<span class="kw">CMD</span> [<span class="str">"./app"</span>]</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            It ships the entire Go toolchain (~800&nbsp;MB) in the final image — huge, slow to pull, and a big attack surface (compilers, shell, package manager all present). Use a multi-stage build: compile in <code>golang</code>, then copy only the binary into <code>distroless/static</code> or <code>scratch</code> for a ~10&nbsp;MB image running as non-root.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">Why set <code>GOMEMLIMIT</code> instead of just trusting Go's GC in a container?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            Go's GC targets a heap-growth ratio, not an absolute ceiling — it doesn't know about the container's memory limit. Under load it can let the heap grow past the k8s limit, and the kernel OOM-kills the pod (a hard crash, dropped requests). <code>GOMEMLIMIT</code> tells the GC a soft ceiling so it collects more aggressively as you approach it — trading some CPU for staying alive. Set it a bit below the container limit.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Build your image, then <code>docker images</code> to see its size — under ~20&nbsp;MB means the multi-stage build worked. Run it locally with <code>docker run -e PORT=8080 -p 8080:8080 weather</code> and hit <code>/healthz</code>.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L04 · Containers &amp; Cloud</b> — cloud-native is table stakes in every surveyed market. Applied in Project P4.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

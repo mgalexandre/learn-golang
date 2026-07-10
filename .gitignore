@@ -1,0 +1,17 @@
+# Binaries
+/weather
+*.exe
+*.out
+
+# Go
+/vendor/
+*.test
+*.prof
+coverage.out
+
+# Env & secrets — never commit these (see L07)
+.env
+*.local
+
+# OS / editor
+.DS_Store

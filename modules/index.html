@@ -1,0 +1,287 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — Job-Market Curriculum</title>
+<style>
+  :root {
+    --ground:#F4F8F9; --surface:#FFFFFF; --surface-2:#ECF3F4;
+    --ink:#0E2127; --ink-soft:#3C555C; --ink-faint:#6B8189; --line:#D3E0E2;
+    --accent:#007D9C; --accent-bright:#00ADD8; --accent-wash:#E1F1F5;
+    --amber:#B26A16; --amber-wash:#FBEFDD; --green:#2F8A5F; --green-wash:#E0F1E8;
+    --code-bg:#0E2127; --code-ink:#D6E7EA; --code-dim:#6E8B92;
+    --shadow:0 1px 2px rgba(14,33,39,.06), 0 8px 24px rgba(14,33,39,.06);
+    --serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#0B181D; --surface:#10242B; --surface-2:#16303A;
+      --ink:#E7F1F2; --ink-soft:#A9C0C5; --ink-faint:#7A959B; --line:#234049;
+      --accent:#35C4E6; --accent-bright:#57D3F0; --accent-wash:#123039;
+      --amber:#E0A048; --amber-wash:#2C2415; --green:#58BC8B; --green-wash:#14291F;
+      --code-bg:#071216; --code-ink:#CFE3E6; --code-dim:#5E7B82;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+
+  header.hero{padding:clamp(44px,7vw,92px) 0 44px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(40px,7vw,68px);line-height:1.02;letter-spacing:-0.02em;text-wrap:balance;margin:16px 0 18px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:52ch;margin:0 0 26px;}
+  .flags{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--sans);}
+  .flag{font-size:13.5px;font-weight:500;padding:6px 13px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);display:inline-flex;gap:7px;align-items:center;}
+
+  section{padding:52px 0;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:0;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 10px;text-wrap:balance;}
+  p.sub{color:var(--ink-soft);max-width:64ch;}
+
+  /* demand table */
+  .tablewrap{overflow-x:auto;margin:26px 0 6px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  table{border-collapse:collapse;width:100%;min-width:640px;background:var(--surface);font-family:var(--sans);font-size:14px;}
+  thead th{text-align:left;padding:14px 16px;color:var(--ink-faint);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--line);}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:0;}
+  tbody td:first-child{color:var(--ink);font-weight:600;font-family:var(--serif);font-size:16px;}
+  .dot{display:inline-flex;align-items:center;justify-content:center;width:100%;}
+  .demand{font-variant-numeric:tabular-nums;font-weight:600;}
+  .d-hi{color:var(--green);}
+  .d-md{color:var(--amber);}
+  .d-lo{color:var(--ink-faint);}
+
+  /* module grid */
+  .grid{display:grid;gap:16px;grid-template-columns:1fr;margin-top:26px;}
+  @media(min-width:680px){.grid{grid-template-columns:repeat(2,1fr);}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 22px 24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;position:relative;transition:transform .12s,border-color .12s;text-decoration:none;color:inherit;}
+  .card:hover{transform:translateY(-2px);border-color:var(--accent);}
+  .card .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.05em;}
+  .card h3{font-family:var(--serif);font-weight:700;font-size:21px;margin:2px 0 2px;letter-spacing:-0.01em;}
+  .card p{font-family:var(--sans);font-size:14px;color:var(--ink-soft);margin:0;line-height:1.5;}
+  .card .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .card .t{font-family:var(--mono);font-size:11.5px;padding:3px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-soft);}
+  .card .status{position:absolute;top:18px;right:18px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;}
+  .st-live{background:var(--green-wash);color:var(--green);}
+  .st-soon{background:var(--surface-2);color:var(--ink-faint);}
+
+  .legend{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  footer{border-top:1px solid var(--line);padding:32px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:13.5px;}
+  footer a{color:var(--accent);text-decoration:none;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Learn Go by Building · Curriculum</p>
+    <h1>A Go path built from <span class="cy">real job listings.</span></h1>
+    <p class="lede">Every module below traces back to skills employers actually ask for in Go backend roles across five European markets — surveyed July 2026, not a generic syllabus.</p>
+    <div class="flags">
+      <span class="flag">&#x1F1F5;&#x1F1F9; Portugal</span>
+      <span class="flag">&#x1F1F3;&#x1F1F1; Netherlands</span>
+      <span class="flag">&#x1F1F1;&#x1F1FA; Luxembourg</span>
+      <span class="flag">&#x1F1E7;&#x1F1EA; Belgium</span>
+      <span class="flag">&#x1F1EC;&#x1F1E7; United Kingdom</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section>
+    <p class="eyebrow">The evidence</p>
+    <h2>What the market asks for</h2>
+    <p class="sub">Demand signal aggregated from Glassdoor, Golang.cafe, golangprojects, Indeed and Totaljobs listings across the five countries. This table decides the module order.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Skill</th><th>&#x1F1F5;&#x1F1F9;</th><th>&#x1F1F3;&#x1F1F1;</th><th>&#x1F1F1;&#x1F1FA;</th><th>&#x1F1E7;&#x1F1EA;</th><th>&#x1F1EC;&#x1F1E7;</th><th>Module</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Concurrency (goroutines, channels, context)</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td>02</td></tr>
+          <tr><td>REST + gRPC APIs</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td>03</td></tr>
+          <tr><td>Microservices &amp; distributed systems</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td>03</td></tr>
+          <tr><td>Docker + Kubernetes</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td>04</td></tr>
+          <tr><td>Cloud (AWS primary; GCP/Azure)</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td>04</td></tr>
+          <tr><td>Databases: PostgreSQL, Redis, Mongo</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td>05</td></tr>
+          <tr><td>Message queues: Kafka, RabbitMQ</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td>05</td></tr>
+          <tr><td>Testing &amp; observability</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td>06</td></tr>
+          <tr><td>CI/CD pipelines</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td>04</td></tr>
+          <tr><td>Security &amp; auth (JWT/OAuth2)</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td>07</td></tr>
+          <tr><td>Clean, idiomatic Go</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td class="demand d-hi">●●●</td><td>08</td></tr>
+          <tr><td>System design</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td class="demand d-md">●●</td><td class="demand d-md">●●</td><td class="demand d-hi">●●●</td><td>09</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><b class="d-hi">●●●</b> core requirement</span>
+      <span><b class="d-md">●●</b> frequently listed</span>
+      <span><b class="d-lo">●</b> occasional</span>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Track A · Learnings</p>
+    <h2>Concept modules</h2>
+    <p class="sub">The knowledge, demand-ordered. Read + drill these to <em>understand</em> each skill in isolation, with retrieval practice. Study the concept here, then apply it in the matching project.</p>
+    <div class="grid">
+      <a class="card" href="./module-01-foundations.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L01</span>
+        <h3>Foundations</h3>
+        <p>Package/main, zero values, the error idiom, structs &amp; tags.</p>
+        <div class="tags"><span class="t">errors</span><span class="t">structs</span><span class="t">→ Project P1</span></div>
+      </a>
+      <a class="card" href="./module-02-concurrency.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L02</span>
+        <h3>Concurrency</h3>
+        <p>Goroutines, channels, <code>select</code>, <code>sync</code>, and <code>context</code> — the skill every listing tests.</p>
+        <div class="tags"><span class="t">goroutines</span><span class="t">context</span><span class="t">→ Project P2</span></div>
+      </a>
+      <a class="card" href="./module-03-apis-microservices.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L03</span>
+        <h3>APIs &amp; Distributed Systems</h3>
+        <p>net/http, REST design, gRPC, and the resilience patterns behind microservices.</p>
+        <div class="tags"><span class="t">gRPC</span><span class="t">resilience</span><span class="t">→ Project P3</span></div>
+      </a>
+      <a class="card" href="./module-04-containers-cloud.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L04</span>
+        <h3>Containers &amp; Cloud</h3>
+        <p>Dockerizing Go, Kubernetes probes &amp; limits, CI/CD, deploying to AWS.</p>
+        <div class="tags"><span class="t">Docker</span><span class="t">Kubernetes</span><span class="t">→ P4</span></div>
+      </a>
+      <a class="card" href="./module-05-data-messaging.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L05</span>
+        <h3>Data &amp; Messaging</h3>
+        <p>database/sql + PostgreSQL, Redis caching, Kafka/RabbitMQ producers &amp; consumers.</p>
+        <div class="tags"><span class="t">PostgreSQL</span><span class="t">Kafka</span><span class="t">→ P3</span></div>
+      </a>
+      <a class="card" href="./module-06-testing-observability.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L06</span>
+        <h3>Testing &amp; Observability</h3>
+        <p>Table-driven tests, mocks via interfaces, structured logs, metrics &amp; tracing.</p>
+        <div class="tags"><span class="t">go test</span><span class="t">tracing</span><span class="t">→ P4</span></div>
+      </a>
+      <a class="card" href="./module-07-security-auth.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L07</span>
+        <h3>Security &amp; Auth</h3>
+        <p>JWT/OAuth2, TLS, secrets, password hashing, input validation — the fintech gatekeeper.</p>
+        <div class="tags"><span class="t">JWT</span><span class="t">OAuth2</span><span class="t">→ P3</span></div>
+      </a>
+      <a class="card" href="./module-08-idiomatic-go.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L08</span>
+        <h3>Idiomatic Go</h3>
+        <p>Generics, error wrapping, interface design, slice/map internals, project layout.</p>
+        <div class="tags"><span class="t">generics</span><span class="t">errors.Is</span><span class="t">deepens L01</span></div>
+      </a>
+      <a class="card" href="./module-09-system-design.html">
+        <span class="status st-live">Live</span>
+        <span class="num">L09</span>
+        <h3>System Design</h3>
+        <p>Scaling, load balancing, caching, data at scale, CAP — for the design interview.</p>
+        <div class="tags"><span class="t">scaling</span><span class="t">CAP</span><span class="t">interview</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Track B · Projects</p>
+    <h2>Build modules</h2>
+    <p class="sub">The application. Each project is a portfolio-shaped build that exercises the concepts from its linked learning modules — and mirrors what these five markets actually hire you to do.</p>
+    <div class="grid">
+      <a class="card" href="./project-01-weather-cli.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P01 · beginner</span>
+        <h3>Weather CLI</h3>
+        <p>Fetch + parse a live weather API into a clean command-line tool.</p>
+        <div class="tags"><span class="t">uses L01</span><span class="t">HTTP</span><span class="t">JSON</span></div>
+      </a>
+      <a class="card" href="./project-02-concurrent-fetcher.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P02 · intermediate</span>
+        <h3>Concurrent Multi-City Fetcher</h3>
+        <p>Fan-out weather lookups across a worker pool with <code>context</code> timeouts &amp; rate limits.</p>
+        <div class="tags"><span class="t">uses L02</span><span class="t">worker pool</span></div>
+      </a>
+      <a class="card" href="./project-03-weather-microservice.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P03 · advanced</span>
+        <h3>Weather Microservice</h3>
+        <p>A REST + gRPC service backed by PostgreSQL and Redis, with a Kafka event stream.</p>
+        <div class="tags"><span class="t">uses L03·L05·L07</span><span class="t">gRPC</span><span class="t">auth</span></div>
+      </a>
+      <a class="card" href="./project-04-ship-it.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P04 · production</span>
+        <h3>Ship It: Containers → Cloud</h3>
+        <p>Dockerize, add k8s probes, wire CI/CD, instrument with metrics &amp; traces, deploy to AWS.</p>
+        <div class="tags"><span class="t">uses L04·L06</span><span class="t">Kubernetes</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">The schedule</p>
+    <h2>A 6-week study plan</h2>
+    <p class="sub">Learn a concept, then apply it immediately — that alternation <em>is</em> the retrieval loop the whole method runs on. Adjust the pace to your life; the order is what matters. Each concept module is ~40 min of reading plus its drills.</p>
+    <div class="grid">
+      <div class="card">
+        <span class="num">WEEK 1 · foundations</span>
+        <h3>Language + first build</h3>
+        <p>Get the basics down and ship something runnable on day one, then sharpen with idiomatic patterns.</p>
+        <div class="tags"><span class="t">L01</span><span class="t">L08</span><span class="t">build P01</span></div>
+      </div>
+      <div class="card">
+        <span class="num">WEEK 2 · concurrency</span>
+        <h3>Go's headline skill</h3>
+        <p>The most-tested topic. Read L02, then bound it under real constraints in the fetcher.</p>
+        <div class="tags"><span class="t">L02</span><span class="t">build P02</span></div>
+      </div>
+      <div class="card">
+        <span class="num">WEEK 3 · services</span>
+        <h3>APIs + security</h3>
+        <p>net/http, REST, gRPC, GraphQL, and auth. Start the microservice with protected endpoints.</p>
+        <div class="tags"><span class="t">L03</span><span class="t">L07</span><span class="t">start P03</span></div>
+      </div>
+      <div class="card">
+        <span class="num">WEEK 4 · data</span>
+        <h3>State &amp; messaging</h3>
+        <p>Postgres, Redis, and queues. Wire the persistence and cache layers into the microservice.</p>
+        <div class="tags"><span class="t">L05</span><span class="t">finish P03</span></div>
+      </div>
+      <div class="card">
+        <span class="num">WEEK 5 · production</span>
+        <h3>Ship &amp; observe</h3>
+        <p>Containerize, deploy, and instrument. Testing and observability turn code into a service.</p>
+        <div class="tags"><span class="t">L04</span><span class="t">L06</span><span class="t">build P04</span></div>
+      </div>
+      <div class="card">
+        <span class="num">WEEK 6 · interview-ready</span>
+        <h3>Scale &amp; polish</h3>
+        <p>System design ties it together. Write the design doc, clean the README, run mock interviews.</p>
+        <div class="tags"><span class="t">L09</span><span class="t">portfolio</span></div>
+      </div>
+    </div>
+    <div class="legend" style="margin-top:18px;">
+      <span><b>Rhythm:</b> read the concept &rarr; do its drills &rarr; apply it in the project &rarr; revisit an earlier module's drills to reinforce.</span>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    Curriculum derived from July 2026 listings on Glassdoor, Golang.cafe, golangprojects.com, Indeed &amp; Totaljobs across PT · NL · LU · BE · UK. Built as your local <a href="./module-01-foundations.html">Learn Go by Building</a> environment.
+  </div>
+</footer>

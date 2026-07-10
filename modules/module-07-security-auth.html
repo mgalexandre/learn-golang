@@ -1,0 +1,252 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L07 Security & Auth</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L07</p>
+    <h1>Security &amp; auth: the fintech <span class="cy">gatekeeper.</span></h1>
+    <p class="lede">"Security best practices" and "robust banking services" are direct quotes from the PT/LU listings. This module covers auth (JWT/OAuth2), TLS, secrets, hashing, and the input-validation habits that pass a security review.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P3</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#authn">AuthN vs AuthZ</a></li>
+        <li><a href="#jwt">JWT &amp; sessions</a></li>
+        <li><a href="#oauth">OAuth2 &amp; OIDC</a></li>
+        <li><a href="#passwords">Password hashing</a></li>
+        <li><a href="#tls">TLS &amp; secrets</a></li>
+        <li><a href="#input">Input &amp; injection</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="authn">
+        <p class="eyebrow">Concept 1 · vocabulary</p>
+        <h2>Authentication vs authorization</h2>
+        <p>Two words interviewers expect you to distinguish precisely. <strong>Authentication</strong> (AuthN) = <em>who are you?</em> <strong>Authorization</strong> (AuthZ) = <em>what are you allowed to do?</em> A valid login (AuthN) doesn't grant admin rights (AuthZ).</p>
+        <p>In an HTTP service both live in <strong>middleware</strong> (L03): authenticate the caller, attach their identity to the request <code>context</code>, then let handlers check permissions.</p>
+<pre><span class="kw">func</span> <span class="fn">authn</span>(next http.Handler) http.Handler {
+    <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+        user, err := <span class="fn">verifyToken</span>(r.<span class="fn">Header</span>().<span class="fn">Get</span>(<span class="str">"Authorization"</span>))
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            http.<span class="fn">Error</span>(w, <span class="str">"unauthorized"</span>, http.StatusUnauthorized) <span class="cm">// 401</span>
+            <span class="kw">return</span>
+        }
+        ctx := context.<span class="fn">WithValue</span>(r.<span class="fn">Context</span>(), userKey, user)
+        next.<span class="fn">ServeHTTP</span>(w, r.<span class="fn">WithContext</span>(ctx))
+    })
+}</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div><code>401 Unauthorized</code> means "I don't know who you are" (AuthN failed). <code>403 Forbidden</code> means "I know you, but you can't do this" (AuthZ failed). Swapping them is a classic tell.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="jwt">
+        <p class="eyebrow">Concept 2</p>
+        <h2>JWTs &amp; sessions</h2>
+        <p>A <strong>JWT</strong> is a signed token carrying claims (user id, expiry, roles). The server verifies the signature — no database lookup needed, which is why it scales for stateless microservices.</p>
+<pre>token, err := jwt.<span class="fn">Parse</span>(raw, <span class="kw">func</span>(t *jwt.Token) (<span class="kw">any</span>, <span class="ty">error</span>) {
+    <span class="kw">return</span> publicKey, <span class="kw">nil</span>            <span class="cm">// verify signature</span>
+})
+<span class="kw">if</span> err != <span class="kw">nil</span> || !token.Valid {
+    <span class="kw">return</span> <span class="kw">nil</span>, ErrUnauthorized
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Three JWT footguns interviewers probe: (1) never accept the <code>alg: none</code> algorithm — pin the expected algorithm; (2) always check <code>exp</code> (expiry); (3) JWTs can't be revoked before expiry, so keep them short-lived and pair with a refresh token. A long-lived JWT is a liability.</div>
+        </div>
+        <p class="sub">The alternative — <strong>server-side sessions</strong> (a random ID in a cookie, state in Redis from L05) — is revocable instantly but needs a lookup per request. Stateless JWT vs stateful session is a real trade-off, not a default.</p>
+      </section>
+
+      <section class="mod" id="oauth">
+        <p class="eyebrow">Concept 3</p>
+        <h2>OAuth2 &amp; OpenID Connect</h2>
+        <p>You rarely build login from scratch — you delegate to an identity provider (Google, Auth0, Keycloak) via <strong>OAuth2</strong> (authorization) and <strong>OIDC</strong> (an identity layer on top). Go's <code>golang.org/x/oauth2</code> handles the dance.</p>
+        <div class="callout idiom">
+          <span class="tag">The flow in one line</span>
+          <div>User → redirected to provider → logs in → provider redirects back with a <em>code</em> → your server exchanges the code for tokens (server-to-server, with your client secret). Know the term <strong>Authorization Code flow</strong> — it's the one to use for web apps; implicit flow is deprecated.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="passwords">
+        <p class="eyebrow">Concept 4 · never get this wrong</p>
+        <h2>Password hashing</h2>
+        <p>If you store passwords, hash them with a <strong>slow, salted</strong> algorithm built for the job — <code>bcrypt</code>, <code>scrypt</code>, or <code>argon2</code>. Never MD5/SHA-256 (too fast → brute-forceable), never plaintext, never your own crypto.</p>
+<pre>hash, _ := bcrypt.<span class="fn">GenerateFromPassword</span>([]<span class="ty">byte</span>(pw), bcrypt.DefaultCost)
+<span class="cm">// store `hash`. To check:</span>
+err := bcrypt.<span class="fn">CompareHashAndPassword</span>(hash, []<span class="ty">byte</span>(attempt))
+<span class="kw">if</span> err != <span class="kw">nil</span> { <span class="cm">/* wrong password */</span> }</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>bcrypt salts automatically — don't add your own. And compare secrets with <code>bcrypt.CompareHashAndPassword</code> or <code>crypto/subtle.ConstantTimeCompare</code>, never <code>==</code>, to avoid timing attacks that leak how much of the secret matched.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="tls">
+        <p class="eyebrow">Concept 5</p>
+        <h2>TLS &amp; secrets management</h2>
+        <p>Traffic must be encrypted in transit. In production, TLS usually terminates at a load balancer or ingress (L04), but you should know Go serves it directly too:</p>
+<pre>srv.<span class="fn">ListenAndServeTLS</span>(<span class="str">"cert.pem"</span>, <span class="str">"key.pem"</span>)
+<span class="cm">// or set srv.TLSConfig to pin a minimum version:</span>
+<span class="cm">// tls.Config{MinVersion: tls.VersionTLS12}</span></pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Secrets (DB passwords, signing keys, API keys) come from the environment or a secrets manager (L04) — <strong>never</strong> committed to git or baked into an image. A leaked key in git history is the #1 security-review finding, and rotating it is painful. Treat <code>.env</code> as untracked.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="input">
+        <p class="eyebrow">Concept 6</p>
+        <h2>Input validation &amp; injection</h2>
+        <p>Never trust input. The big families: <strong>SQL injection</strong> (fixed by parameterized queries, L05), <strong>command injection</strong> (avoid <code>os/exec</code> with user strings), and <strong>oversized payloads</strong> (a DoS).</p>
+<pre>r.Body = http.<span class="fn">MaxBytesReader</span>(w, r.Body, <span class="ty">1</span>&lt;&lt;<span class="ty">20</span>)  <span class="cm">// cap body at 1MB</span>
+<span class="kw">var</span> in CreateReq
+dec := json.<span class="fn">NewDecoder</span>(r.Body)
+dec.<span class="fn">DisallowUnknownFields</span>()                <span class="cm">// reject junk fields</span>
+<span class="kw">if</span> err := dec.<span class="fn">Decode</span>(&amp;in); err != <span class="kw">nil</span> {
+    http.<span class="fn">Error</span>(w, <span class="str">"bad request"</span>, http.StatusBadRequest)  <span class="cm">// 400</span>
+    <span class="kw">return</span>
+}
+<span class="cm">// then validate fields: non-empty, in range, correct format</span></pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Pair this with <strong>rate limiting</strong> (the L02 limiter, now as a defense) to blunt brute-force and abuse, and return generic error messages — don't leak "user not found" vs "wrong password," which tells an attacker which accounts exist.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L03/L05.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L03</span>
+          <p class="dq">Where in the request lifecycle do authentication and authorization run, and how does a handler learn who the user is?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            In middleware (L03), before the handler. The authn middleware verifies the token/session, then stores the identity in the request <code>context</code> via <code>context.WithValue</code> and passes <code>r.WithContext(ctx)</code> down. The handler reads it back from <code>r.Context()</code>. Authorization can be a second middleware or an in-handler check against the user's roles.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the vulnerability</span>
+          <p class="dq">What's dangerously wrong here?</p>
+<pre>hash := sha256.<span class="fn">Sum256</span>([]<span class="ty">byte</span>(password))
+<span class="cm">// store hash; later:</span>
+<span class="kw">if</span> sha256.<span class="fn">Sum256</span>([]<span class="ty">byte</span>(attempt)) == hash { <span class="cm">/* ok */</span> }</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            SHA-256 is a <em>fast</em> hash with <strong>no salt</strong> — an attacker with the DB can brute-force billions of guesses per second and use rainbow tables (identical passwords hash identically). Use <code>bcrypt</code>/<code>argon2</code>, which are deliberately slow and salt per-password. (Bonus: <code>==</code> on the hashes isn't constant-time.)
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">Stateless JWTs vs server-side sessions — when would you pick each?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            <strong>JWT</strong>: no per-request lookup, so it scales horizontally with no shared session store — great for many stateless services. Cost: you can't revoke a token before it expires, so keep them short and add refresh tokens. <strong>Sessions</strong>: instantly revocable and simple, but every request hits the session store (Redis) and you must share it across instances. Fintech often prefers sessions (or short JWTs + a revocation list) precisely because instant revocation matters.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>On your P03 service: add the authn middleware, then <code>curl</code> a protected route with no token (expect <code>401</code>), a tampered token (expect <code>401</code>), and a valid one (expect <code>200</code>). Then grep your repo for committed secrets: <code>git log -p | grep -iE 'password|secret|key ='</code>.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L07 · Security &amp; Auth</b> — "security best practices," core to the fintech-heavy PT/LU/BE listings. Applied in Project P3.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

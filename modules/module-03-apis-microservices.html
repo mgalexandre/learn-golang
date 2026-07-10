@@ -1,0 +1,278 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L03 APIs & Distributed Systems</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.7;margin:16px 0;box-shadow:var(--shadow);}
+  pre .kw{color:#FF9E64;}pre .fn{color:var(--accent-bright);}pre .str{color:#9ECE6A;}pre .cm{color:var(--code-dim);font-style:italic;}pre .ty{color:#E2C275;}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer .out-lbl{font-family:var(--mono);font-size:12.5px;color:var(--green);font-weight:600;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L03</p>
+    <h1>APIs &amp; the <span class="cy">distributed systems</span> around them.</h1>
+    <p class="lede">Go was built for network services. This module covers <code style="font-size:.8em">net/http</code>, REST design, gRPC, and the resilience patterns — timeouts, retries, idempotency — that separate a toy from a microservice.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🔨 Applied in <b>Project P3</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#server">The HTTP server</a></li>
+        <li><a href="#routing">Routing &amp; JSON</a></li>
+        <li><a href="#middleware">Middleware</a></li>
+        <li><a href="#rest">REST design</a></li>
+        <li><a href="#grpc">gRPC</a></li>
+        <li><a href="#resilience">Resilience</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="server">
+        <p class="eyebrow">Concept 1</p>
+        <h2>A server in the standard library</h2>
+        <p>No framework required — <code>net/http</code> is production-grade. A handler is anything with <code>ServeHTTP(w, r)</code>; <code>HandlerFunc</code> lets a plain function qualify.</p>
+<pre><span class="kw">func</span> <span class="fn">health</span>(w http.ResponseWriter, r *http.Request) {
+    w.<span class="fn">WriteHeader</span>(http.StatusOK)
+    fmt.<span class="fn">Fprintln</span>(w, <span class="str">"ok"</span>)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    mux := http.<span class="fn">NewServeMux</span>()
+    mux.<span class="fn">HandleFunc</span>(<span class="str">"GET /healthz"</span>, health)  <span class="cm">// method+path (Go 1.22+)</span>
+    srv := &amp;http.Server{
+        Addr:         <span class="str">":8080"</span>,
+        Handler:      mux,
+        ReadTimeout:  <span class="ty">5</span> * time.Second,
+        WriteTimeout: <span class="ty">10</span> * time.Second,   <span class="cm">// never trust the network</span>
+    }
+    log.<span class="fn">Fatal</span>(srv.<span class="fn">ListenAndServe</span>())
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>The default <code>http.ListenAndServe(":8080", mux)</code> has <strong>no timeouts</strong> — a slow client can hold a connection forever (Slowloris). Always construct an <code>http.Server</code> with explicit <code>ReadTimeout</code>/<code>WriteTimeout</code>. Interviewers love this one.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="routing">
+        <p class="eyebrow">Concept 2</p>
+        <h2>Routing &amp; JSON responses</h2>
+        <p>Since Go 1.22 the standard <code>ServeMux</code> understands methods and path wildcards, so you rarely need a third-party router.</p>
+<pre>mux.<span class="fn">HandleFunc</span>(<span class="str">"GET /weather/{city}"</span>, <span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+    city := r.<span class="fn">PathValue</span>(<span class="str">"city"</span>)          <span class="cm">// typed path param</span>
+    report, err := store.<span class="fn">Get</span>(r.<span class="fn">Context</span>(), city)  <span class="cm">// pass the request ctx!</span>
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        http.<span class="fn">Error</span>(w, <span class="str">"not found"</span>, http.StatusNotFound)
+        <span class="kw">return</span>
+    }
+    w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"Content-Type"</span>, <span class="str">"application/json"</span>)
+    json.<span class="fn">NewEncoder</span>(w).<span class="fn">Encode</span>(report)     <span class="cm">// stream, don't buffer</span>
+})</pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Thread <code>r.Context()</code> into every downstream call. When the client disconnects, that context is cancelled and your DB query / upstream call can abort — the L02 <code>context</code> lesson, now in its natural habitat.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="middleware">
+        <p class="eyebrow">Concept 3</p>
+        <h2>Middleware is just a function</h2>
+        <p>Cross-cutting concerns — logging, auth, recovery — wrap a handler and return a handler. No magic, no decorators.</p>
+<pre><span class="kw">func</span> <span class="fn">logging</span>(next http.Handler) http.Handler {
+    <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+        start := time.<span class="fn">Now</span>()
+        next.<span class="fn">ServeHTTP</span>(w, r)
+        log.<span class="fn">Printf</span>(<span class="str">"%s %s %v"</span>, r.Method, r.URL.Path, time.<span class="fn">Since</span>(start))
+    })
+}
+<span class="cm">// wrap: srv.Handler = logging(recover(mux))</span></pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Middleware composes by nesting: <code>logging(auth(mux))</code>. Order matters — a <code>recover</code> middleware outermost catches panics from everything inside, turning a crash into a clean <code>500</code>.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="rest">
+        <p class="eyebrow">Concept 4</p>
+        <h2>Designing the REST surface</h2>
+        <p>Employers say "REST APIs at scale." What they mean: predictable resources, correct status codes, and versioning.</p>
+        <h3>Status codes that mean something</h3>
+        <p><code>200</code> ok · <code>201</code> created · <code>400</code> bad input · <code>401/403</code> auth · <code>404</code> missing · <code>409</code> conflict · <code>422</code> validation · <code>500</code> your fault · <code>503</code> dependency down. Returning <code>200</code> with an error body is an anti-pattern.</p>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Version at the path (<code>/v1/weather</code>) or a header. Return errors as a consistent JSON shape (<code>{"error": {"code": "...", "message": "..."}}</code>) so clients can handle them programmatically.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="grpc">
+        <p class="eyebrow">Concept 5</p>
+        <h2>gRPC: contracts between services</h2>
+        <p>For service-to-service traffic, gRPC (protobuf over HTTP/2) is faster and strongly typed. You define the contract once in a <code>.proto</code> file and generate Go code with <code>protoc</code>.</p>
+<pre><span class="cm">// weather.proto</span>
+service Weather {
+  rpc Get(GetRequest) returns (Report);
+}
+message GetRequest { string city = <span class="ty">1</span>; }
+message Report     { double temp_c = <span class="ty">1</span>; string desc = <span class="ty">2</span>; }</pre>
+        <div class="callout idiom">
+          <span class="tag">When to use which</span>
+          <div><strong>REST/JSON</strong> for public &amp; browser-facing APIs (human-readable, cache-friendly). <strong>gRPC</strong> for internal microservice calls (typed, streaming, low overhead). Many Go shops expose REST at the edge and gRPC between services — you'll see both on one job spec.</div>
+        </div>
+        <h3>...and GraphQL</h3>
+        <p>A few listings (LU/BE) pair "REST, GraphQL." GraphQL exposes <em>one</em> endpoint where the client asks for exactly the fields it wants — solving over- and under-fetching for rich frontends. In Go, <code>gqlgen</code> generates type-safe resolvers from a schema.</p>
+<pre><span class="cm"># schema.graphql</span>
+type Query { weather(city: String!): Report }
+type Report { tempC: Float!, description: String! }</pre>
+        <div class="callout gotcha">
+          <span class="tag">Trade-off</span>
+          <div>GraphQL's flexibility costs you: HTTP caching is harder (everything's a POST to one URL), and a naive resolver hitting the DB per field causes the <strong>N+1 query</strong> problem — fixed with a <em>dataloader</em> that batches. Reach for GraphQL when clients need flexible, nested reads; stick with REST for simple resource CRUD.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="resilience">
+        <p class="eyebrow">Concept 6 · the distributed-systems part</p>
+        <h2>Failure is the default</h2>
+        <p>Across a network, every call can be slow, fail, or duplicate. "Resilient services" on a job spec means you handle these deliberately.</p>
+        <h3>Timeouts &amp; retries with backoff</h3>
+<pre>ctx, cancel := context.<span class="fn">WithTimeout</span>(r.<span class="fn">Context</span>(), <span class="ty">2</span>*time.Second)
+<span class="kw">defer</span> cancel()
+<span class="kw">for</span> attempt := <span class="ty">0</span>; attempt &lt; <span class="ty">3</span>; attempt++ {
+    err := <span class="fn">callUpstream</span>(ctx)
+    <span class="kw">if</span> err == <span class="kw">nil</span> { <span class="kw">break</span> }
+    time.<span class="fn">Sleep</span>(time.<span class="fn">Duration</span>(attempt*attempt) * <span class="ty">100</span> * time.Millisecond) <span class="cm">// backoff</span>
+}</pre>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>Only retry <strong>idempotent</strong> operations. Retrying a "charge card" that actually succeeded but timed out charges twice. The fix is an <em>idempotency key</em> so the server dedupes. This is core fintech knowledge — heavily represented in the PT/LU listings.</div>
+        </div>
+        <p class="sub">Beyond retries: <strong>circuit breakers</strong> (stop hammering a dead dependency), <strong>rate limiting</strong> (protect yourself), and <strong>graceful shutdown</strong> (<code>srv.Shutdown(ctx)</code> to drain in-flight requests on deploy).</p>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L02.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L02</span>
+          <p class="dq">A request handler starts 3 goroutines to call upstreams. The client disconnects. How do the goroutines know to stop?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            They watch <code>r.Context().Done()</code>. When the client disconnects, the server cancels the request context; its <code>Done()</code> channel closes, and any goroutine passed that <code>ctx</code> (or a call using it, like an HTTP request built with <code>NewRequestWithContext</code>) unblocks and returns <code>context.Canceled</code>. Without threading the context through, they'd leak.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Find the bug</span>
+          <p class="dq">Why might this handler leak goroutines / connections under load?</p>
+<pre>mux.<span class="fn">HandleFunc</span>(<span class="str">"GET /slow"</span>, <span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+    resp, _ := http.<span class="fn">Get</span>(<span class="str">"https://upstream/data"</span>)
+    io.<span class="fn">Copy</span>(w, resp.Body)
+})</pre>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            Three defects: (1) the error is ignored — <code>resp</code> could be <code>nil</code> → panic; (2) <code>resp.Body</code> is never <code>Close()</code>d → connection leak; (3) no context/timeout, so a slow upstream ties up this handler indefinitely. Fix: check the error, <code>defer resp.Body.Close()</code>, and use <code>http.NewRequestWithContext(r.Context(), ...)</code>.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">Your service calls a flaky payment provider. Why add a circuit breaker on top of retries?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            Retries help with <em>transient</em> blips, but if the provider is genuinely down, every request retrying 3× multiplies load on a dying dependency and ties up your own goroutines — a cascading failure. A circuit breaker "opens" after N failures and fails fast for a cooldown, giving the dependency room to recover and keeping your service responsive. Retries + breaker together, not either alone.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Run your server, then <code>curl -i localhost:8080/weather/London</code>. Check the status code and <code>Content-Type</code>. Then kill the upstream and confirm you get a clean <code>503</code>, not a hang or a panic.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L03 · APIs &amp; Distributed Systems</b> — core requirement across all five markets. Applied in Project P3.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>

@@ -1,0 +1,219 @@
+<meta charset="utf-8">
+<title>Learn Go by Building — L09 System Design</title>
+<style>
+  :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
+  @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
+  :root[data-theme="light"]{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;}
+  :root[data-theme="dark"]{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+  .layout{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:940px){.layout{grid-template-columns:210px minmax(0,1fr);gap:56px;align-items:start;}}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);}
+  .backlink{font-family:var(--sans);font-size:13px;color:var(--ink-faint);text-decoration:none;}
+  .backlink:hover{color:var(--accent);}
+  header.hero{padding:clamp(40px,7vw,80px) 0 40px;border-bottom:1px solid var(--line);}
+  .hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(38px,6.5vw,60px);line-height:1.03;letter-spacing:-0.02em;text-wrap:balance;margin:14px 0 16px;max-width:16ch;}
+  .hero h1 .cy{color:var(--accent);font-style:italic;}
+  .hero p.lede{font-size:clamp(18px,2.4vw,21px);color:var(--ink-soft);max-width:56ch;margin:0 0 24px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--sans);}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);}
+  .chip b{color:var(--ink);font-weight:600;}
+  nav.rail{font-family:var(--sans);position:sticky;top:24px;padding-top:48px;}
+  @media(max-width:939px){nav.rail{position:static;padding-top:32px;}}
+  nav.rail .rail-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  nav.rail ol{list-style:none;margin:0;padding:0;counter-reset:r;}
+  nav.rail li{counter-increment:r;}
+  nav.rail a{display:flex;gap:12px;align-items:baseline;padding:9px 0;color:var(--ink-soft);text-decoration:none;font-size:14.5px;border-top:1px solid var(--line);transition:color .15s;}
+  nav.rail li:last-child a{border-bottom:1px solid var(--line);}
+  nav.rail a::before{content:counter(r,decimal-leading-zero);color:var(--accent);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;}
+  nav.rail a:hover{color:var(--accent);}
+  main{padding:8px 0 80px;min-width:0;}
+  section.mod{padding:46px 0;border-top:1px solid var(--line);}
+  section.mod:first-child{border-top:0;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(26px,4vw,34px);letter-spacing:-0.015em;line-height:1.1;margin:6px 0 12px;text-wrap:balance;}
+  main h3{font-family:var(--sans);font-weight:650;font-size:17px;margin:30px 0 6px;color:var(--ink);}
+  main p{max-width:65ch;color:var(--ink);}
+  main p.sub{color:var(--ink-soft);}
+  .from-lang{font-family:var(--sans);font-size:13.5px;color:var(--ink-faint);}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.75;margin:16px 0;box-shadow:var(--shadow);white-space:pre;}
+  pre .cm{color:var(--code-dim);font-style:italic;}pre .hl{color:var(--accent-bright);}
+  p code,li code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:5px;color:var(--accent);}
+  .callout{display:flex;gap:14px;border-radius:10px;padding:16px 18px;margin:18px 0;font-family:var(--sans);font-size:15px;line-height:1.55;}
+  .callout .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px;}
+  .callout.gotcha{background:var(--amber-wash);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--ink);}
+  .callout.gotcha .tag{color:var(--amber);}
+  .callout.idiom{background:var(--accent-wash);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);}
+  .callout.idiom .tag{color:var(--accent);}
+  .callout code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  @media(prefers-color-scheme:dark){.callout code{background:rgba(255,255,255,.08);}}
+  .drill{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:10px;padding:20px 22px;margin:20px 0;box-shadow:var(--shadow);}
+  .drill .dkind{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);}
+  .drill .dq{font-family:var(--sans);font-size:15.5px;color:var(--ink);margin:6px 0 12px;}
+  .drill pre{margin:0 0 14px;}
+  .reveal-btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;background:var(--green);color:#fff;border:0;border-radius:7px;padding:8px 16px;transition:filter .15s,transform .05s;}
+  .reveal-btn:hover{filter:brightness(1.06);}.reveal-btn:active{transform:translateY(1px);}
+  .reveal-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .answer{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-family:var(--sans);font-size:14.5px;color:var(--ink-soft);line-height:1.6;}
+  .answer.show{display:block;}
+  .answer code{font-family:var(--mono);font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--accent);}
+  footer.foot{border-top:1px solid var(--line);padding:36px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:14px;}
+  footer.foot b{color:var(--ink-soft);}
+  footer.foot .next{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-weight:600;text-decoration:none;margin-top:6px;}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <a class="backlink" href="./index.html">← Curriculum</a>
+    <p class="eyebrow" style="margin-top:14px;">Track A · Learnings · L09</p>
+    <h1>System design: <span class="cy">scaling</span> what you built.</h1>
+    <p class="lede">"System design, databases, cloud infrastructure" — straight from the NL listings. This module reframes your weather service as a scaling problem and equips you for the design interview.</p>
+    <div class="meta-row">
+      <span class="chip">🧠 <b>Concept module</b></span>
+      <span class="chip">⏱ <b>~40 min</b></span>
+      <span class="chip">🎯 <b>Interview prep</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <nav class="rail" aria-label="Module contents">
+      <div class="rail-title">This module</div>
+      <ol>
+        <li><a href="#method">The design method</a></li>
+        <li><a href="#scale">Vertical vs horizontal</a></li>
+        <li><a href="#lb">Load balancing</a></li>
+        <li><a href="#cache">Caching strategy</a></li>
+        <li><a href="#data">Data at scale</a></li>
+        <li><a href="#cap">CAP &amp; consistency</a></li>
+        <li><a href="#drills">Retrieval drills</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section class="mod" id="method">
+        <p class="eyebrow">Concept 1 · the framework</p>
+        <h2>How to run a design interview</h2>
+        <p>Interviewers grade your <em>process</em>, not a memorized answer. A reliable order:</p>
+        <p class="sub"><strong>1.</strong> Clarify requirements (functional + non-functional) → <strong>2.</strong> Estimate scale (QPS, data size) → <strong>3.</strong> Sketch the high-level components → <strong>4.</strong> Drill into data model &amp; APIs → <strong>5.</strong> Identify bottlenecks &amp; scale them → <strong>6.</strong> Discuss trade-offs.</p>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>Always separate <strong>functional</strong> requirements ("return current weather") from <strong>non-functional</strong> ones ("p99 &lt; 100ms, 10k QPS, 99.9% uptime"). The non-functional numbers drive every architecture decision that follows.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="scale">
+        <p class="eyebrow">Concept 2</p>
+        <h2>Vertical vs horizontal scaling</h2>
+        <p><strong>Vertical</strong> = bigger machine (simple, but a ceiling and a single point of failure). <strong>Horizontal</strong> = more machines (the cloud-native default from L04). Go's cheap concurrency and small binaries make horizontal scaling especially easy.</p>
+        <div class="callout idiom">
+          <span class="tag">Key enabler</span>
+          <div>Horizontal scaling requires <strong>stateless</strong> services — any instance can handle any request. That's why session state lives in Redis (L05) and auth prefers stateless JWTs (L07): so you can add replicas behind a load balancer without sticky sessions.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="lb">
+        <p class="eyebrow">Concept 3</p>
+        <h2>Load balancing</h2>
+        <p>A load balancer spreads traffic across your stateless replicas and removes unhealthy ones — using the very <code>/readyz</code> probe you built in L04/P03.</p>
+<pre>            <span class="hl">┌─ weather-1</span>
+client ─▶ LB ─┼─ weather-2   <span class="cm">// round-robin / least-conn</span>
+            <span class="hl">└─ weather-3</span>   <span class="cm">// unhealthy → LB stops routing (readyz)</span></pre>
+        <div class="callout idiom">
+          <span class="tag">Idiom</span>
+          <div>In Kubernetes the <code>Service</code> + ingress <em>is</em> your load balancer. Common algorithms: round-robin (default), least-connections (better for uneven request cost), and consistent hashing (when you need a client to stick to a shard).</div>
+        </div>
+      </section>
+
+      <section class="mod" id="cache">
+        <p class="eyebrow">Concept 4</p>
+        <h2>Caching strategy</h2>
+        <p>Caching is the highest-leverage scaling move. You already built cache-aside (L05); at scale you also think about <em>where</em> to cache and <em>how</em> to invalidate.</p>
+        <p class="sub"><strong>Layers:</strong> client → CDN (for public GETs) → your Redis cache → database. Each layer it doesn't reach is load you didn't pay for.</p>
+        <div class="callout gotcha">
+          <span class="tag">Gotcha</span>
+          <div>"There are only two hard things in CS: cache invalidation and naming things." Stale data is the tax on caching. Decide per-endpoint: short TTLs (weather: 10 min is fine), event-based invalidation, or accept eventual consistency. Never cache anything user-specific in a shared/CDN layer.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="data">
+        <p class="eyebrow">Concept 5</p>
+        <h2>Data at scale</h2>
+        <p>When one Postgres can't keep up:</p>
+        <p class="sub"><strong>Read replicas</strong> — send reads to followers, writes to the primary (weather is read-heavy → big win). <strong>Sharding/partitioning</strong> — split data by key (e.g. by region) across databases when write volume or size exceeds one node. <strong>Indexing</strong> — the cheapest first fix; a missing index turns a fast query into a table scan.</p>
+        <div class="callout idiom">
+          <span class="tag">Order of operations</span>
+          <div>Scale data in this order: add an index → add a cache (L05) → add read replicas → shard. Sharding is powerful but adds huge complexity (cross-shard queries, rebalancing) — reach for it last, and be able to say why in an interview.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="cap">
+        <p class="eyebrow">Concept 6 · the theory they ask about</p>
+        <h2>CAP &amp; consistency</h2>
+        <p>The <strong>CAP theorem</strong>: in a network partition you must choose <strong>C</strong>onsistency or <strong>A</strong>vailability — you can't have both while <strong>P</strong>artition-tolerant (and networks always partition eventually).</p>
+        <div class="callout idiom">
+          <span class="tag">How to apply it</span>
+          <div>A weather read can be <strong>AP</strong> — serve slightly stale data, stay available. A bank transfer must be <strong>CP</strong> — refuse rather than double-spend. The senior move is saying "different parts of one system make different CAP choices": the weather cache is AP, the payment ledger is CP. That nuance is what fintech interviewers (PT/LU) listen for.</div>
+        </div>
+      </section>
+
+      <section class="mod" id="drills">
+        <p class="eyebrow">Evidence-based practice</p>
+        <h2>Retrieval drills</h2>
+        <p class="sub">Predict before revealing. Drill 1 recalls L05/L07.</p>
+
+        <div class="drill">
+          <span class="dkind">Explain · recalls L05/L07</span>
+          <p class="dq">Your weather service is at 3 replicas behind a load balancer, but users randomly get logged out. What's the likely cause?</p>
+          <button class="reveal-btn" data-target="a1">Reveal answer</button>
+          <div class="answer" id="a1">
+            Session state is stored <em>in-memory per instance</em>, so a request routed to a different replica than the login doesn't find the session. Fix by making the service stateless: move sessions to shared Redis (L05) or use stateless JWTs (L07). Sticky sessions "fix" it too but undermine even load distribution — statelessness is the right answer.
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Estimate</span>
+          <p class="dq">10,000 weather requests/sec, 90% served from a 10-minute cache. Roughly how many requests/sec actually hit the upstream/DB?</p>
+          <button class="reveal-btn" data-target="a2">Reveal answer</button>
+          <div class="answer" id="a2">
+            ~1,000/sec at the cache miss rate (10% of 10k) — but with a 10-minute TTL and a limited set of cities, real misses are far lower, since a popular city is fetched once per 10 min and served from cache to everyone else. This is the point of caching: a small backend handling a huge front-end load. (Watch for the thundering-herd on expiry — L05.)
+          </div>
+        </div>
+
+        <div class="drill">
+          <span class="dkind">Explain the trade-off</span>
+          <p class="dq">Why might you make the weather endpoint AP but the billing endpoint CP in the same system?</p>
+          <button class="reveal-btn" data-target="a3">Reveal answer</button>
+          <div class="answer" id="a3">
+            They have different correctness requirements. Weather can be slightly stale without harm, so favor <strong>availability</strong> — serve cached/replica data even during a partition. Billing must never double-charge or lose money, so favor <strong>consistency</strong> — refuse the operation rather than risk a wrong result. One system, two CAP choices, each matched to the cost of being wrong.
+          </div>
+        </div>
+
+        <div class="callout idiom" style="margin-top:26px">
+          <span class="tag">Verify</span>
+          <div>Take your P03/P04 service and write a one-page design doc: requirements, a component diagram, where each cache/replica goes, and the CAP choice per endpoint. Being able to <em>draw and defend</em> it is exactly the interview.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>L09 · System Design</b> — "system design &amp; cloud infrastructure," from the NL listings. Ties the whole curriculum together.</div>
+    <a class="next" href="./index.html">← Back to the curriculum</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.reveal-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var p=document.getElementById(btn.dataset.target);
+      if(!p)return;
+      var open=p.classList.toggle('show');
+      btn.textContent=open?'Hide answer':'Reveal answer';
+    });
+  });
+</script>
