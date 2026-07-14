@@ -79,6 +79,8 @@
   }
 
   /* ---- eyebrow / labels ---- */
+  .backlink { font-family: var(--sans); font-size: 13px; color: var(--ink-faint); text-decoration: none; }
+  .backlink:hover { color: var(--accent); }
   .eyebrow {
     font-family: var(--sans);
     font-size: 12px; font-weight: 600;
@@ -240,7 +242,8 @@
   <div class="wrap">
     <div class="hero-grid">
       <div>
-        <p class="eyebrow">Learn Go by Building &middot; Module 01</p>
+        <a class="backlink" href="./index.html">← Curriculum</a>
+        <p class="eyebrow" style="margin-top:14px;">Learn Go by Building &middot; L01</p>
         <h1>Foundations, from your <span class="cy">first command</span> to first struct.</h1>
         <p class="lede">You already know how to program. This module teaches what makes Go <em>Go</em> &mdash; while we build a real weather CLI.</p>
         <div class="meta-row">
@@ -429,8 +432,10 @@ w := <span class="ty">Weather</span>{City: <span class="str">"London"</span>, Te
 
 <footer class="foot">
   <div class="wrap">
-    <div>Module 01 of the <b>Learn Go by Building</b> series &middot; generated as your local learning environment.</div>
-    <a class="next" href="#roadmap">Next up: Build 02 — calling the API →</a>
+    <div><b>L01 · Foundations</b> — Learn Go by Building. Apply it in Project P01; next concept is L02.</div>
+    <a class="next" href="./module-02-concurrency.html">Next up: L02 — Concurrency →</a>
+    &nbsp;·&nbsp; <a class="next" href="./index.html" style="margin-top:0;">← Back to the curriculum</a>
+    &nbsp;·&nbsp; <a class="next" href="./project-01-weather-cli.html" style="margin-top:0;">Build Project P01 →</a>
   </div>
 </footer>
 
