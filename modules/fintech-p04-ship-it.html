@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Learn Go by Building — P04 Ship It</title>
+<title>Learn Go by Building — P04 Ship the Ledger</title>
 <style>
   :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
   @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
@@ -50,9 +50,9 @@
 <header class="hero">
   <div class="wrap">
     <a class="backlink" href="./index.html">← Curriculum</a>
-    <p class="eyebrow" style="margin-top:14px;">Track B · Weather route · P04 · production</p>
-    <h1><span class="cy">Ship it:</span> containers to cloud.</h1>
-    <p class="lede">Take the P03 microservice from "runs on my machine" to "runs in production" — containerized, deployed, observable. Applies <strong>L04 · Containers</strong> and <strong>L06 · Observability</strong>.</p>
+    <p class="eyebrow" style="margin-top:14px;">Track B · Fintech route · P04 · production</p>
+    <h1><span class="cy">Ship the ledger:</span> containers to cloud.</h1>
+    <p class="lede">Take the P03 payments ledger from "runs on my machine" to "runs in production" — containerized, deployed, observable, and audit-friendly. Applies <strong>L04 · Containers</strong> and <strong>L06 · Observability</strong>.</p>
     <div class="meta-row">
       <span class="chip">🔨 <b>Build module</b></span>
       <span class="chip">📦 Applies <b>L04 · L06</b></span>
@@ -68,10 +68,10 @@
         <h3>What you'll ship</h3>
         <ul>
           <li>A ~15&nbsp;MB <strong>multi-stage</strong> Docker image running as non-root</li>
-          <li><code>docker compose</code> for local Postgres + Redis + service</li>
+          <li><code>docker compose</code> for local Postgres + Redis + Kafka + service</li>
           <li>Kubernetes manifests with liveness/readiness probes &amp; resource limits</li>
           <li>A GitHub Actions <strong>CI/CD</strong> pipeline: test → build → push</li>
-          <li>Structured logs, Prometheus <code>/metrics</code>, and OpenTelemetry traces</li>
+          <li>Structured logs (PII-safe), Prometheus <code>/metrics</code>, OpenTelemetry traces</li>
         </ul>
       </div>
     </section>
@@ -92,26 +92,28 @@
 <span class="kw">ENTRYPOINT</span> [<span class="str">"/app"</span>]</pre>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div><code>docker build -t weather . &amp;&amp; docker images weather</code> — confirm it's under ~20&nbsp;MB. That number <em>is</em> the L04 lesson made concrete.</div>
+        <div><code>docker build -t ledger . &amp;&amp; docker images ledger</code> — confirm it's under ~20&nbsp;MB. Then <code>docker run ledger id</code> should fail — distroless has no shell, which for a payments service is a security <em>feature</em> worth mentioning in interviews.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">02</span><h2>Compose the local stack</h2></div>
-      <p>One command to bring up the whole system for development — the same Postgres + Redis P03/P05 assume.</p>
+      <p>One command for the whole system — including a Kafka-compatible broker (Redpanda is a single binary, perfect for local dev).</p>
 <pre><span class="kw">services:</span>
-  db:    { image: postgres:16, environment: { POSTGRES_PASSWORD: dev } }
-  redis: { image: redis:7 }
+  db:     { image: postgres:16, environment: { POSTGRES_PASSWORD: dev } }
+  redis:  { image: redis:7 }
+  broker: { image: redpandadata/redpanda, command: redpanda start --smp 1 }
   api:
     build: .
     ports: [<span class="str">"8080:8080"</span>]
     environment:
       DATABASE_URL: postgres://postgres:dev@db:5432/postgres
       REDIS_ADDR:   redis:6379
-    depends_on: [db, redis]</pre>
+      KAFKA_BROKER: broker:9092
+    depends_on: [db, redis, broker]</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Why does <code>api</code> read <code>DATABASE_URL</code> from the environment instead of a hardcoded string? (L04: config comes from the environment so the same image runs unchanged in compose, k8s, and AWS — only the injected values change.)</div>
+        <div>Why does <code>api</code> read <code>DATABASE_URL</code> from the environment instead of a hardcoded string? (L04: config comes from the environment so the same image runs unchanged in compose, k8s, and AWS — only the injected values change.) And why is that <em>doubly</em> non-negotiable when the value contains a production DB password?</div>
       </div>
     </section>
 
@@ -127,7 +129,7 @@
             limits:   { cpu: <span class="str">"500m"</span>, memory: <span class="str">"256Mi"</span> }</pre>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div>On a local cluster (<code>kind</code> or <code>minikube</code>): <code>kubectl apply -f k8s/</code>, then <code>kubectl get pods</code> — the pod should reach <code>Running</code> and <code>1/1 READY</code> only after <code>/readyz</code> passes. Kill the DB and watch it go <code>0/1</code> without restarting.</div>
+        <div>On a local cluster (<code>kind</code> or <code>minikube</code>): <code>kubectl apply -f k8s/</code>, then <code>kubectl get pods</code> — the pod should reach <code>1/1 READY</code> only after <code>/readyz</code> passes. Kill the DB and watch it go <code>0/1</code> without restarting. Then send a payment and <code>kubectl delete pod</code> mid-flight: graceful shutdown (P03 step 06) is what keeps the ledger consistent.</div>
       </div>
     </section>
 
@@ -141,49 +143,53 @@
       - uses: actions/setup-go@v5
       - run: go vet ./...
       - run: go test -race -cover ./...       <span class="cm"># L02+L06 safety net</span>
-      - run: docker build -t $REG/weather:${{ github.sha }} .
+      - run: docker build -t $REG/ledger:${{ github.sha }} .
       - <span class="kw">if:</span> github.ref == <span class="str">'refs/heads/main'</span>
-        run: docker push $REG/weather:${{ github.sha }}</pre>
+        run: docker push $REG/ledger:${{ github.sha }}</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Why tag by git SHA rather than <code>latest</code>? (Immutable, traceable deploys and instant rollback — you always know exactly which commit is running. <code>latest</code> is ambiguous and un-rollback-able.)</div>
+        <div>Why tag by git SHA rather than <code>latest</code>? (Immutable, traceable deploys and instant rollback.) For a payments service there's a second answer: when an auditor asks "which code processed this transaction on May 3rd?", the SHA in your deploy log <em>is</em> the answer.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">05</span><h2>Instrument it (the three pillars)</h2></div>
-      <p>Now the L06 observability payoff. Add structured logs, a metrics endpoint, and traces so a slow request is diagnosable in prod.</p>
-<pre><span class="cm">// logs — slog JSON with a request id</span>
-logger.<span class="fn">Info</span>(<span class="str">"served"</span>, <span class="str">"city"</span>, city, <span class="str">"ms"</span>, ms, <span class="str">"cache"</span>, hit)
+      <p>Now the L06 observability payoff — with a fintech constraint: logs must let you trace a payment end-to-end <em>without</em> leaking amounts, balances, or personal data.</p>
+<pre><span class="cm">// logs — slog JSON with a request id; IDs yes, amounts/PII no</span>
+logger.<span class="fn">Info</span>(<span class="str">"payment"</span>, <span class="str">"tx_id"</span>, p.Key, <span class="str">"ms"</span>, ms, <span class="str">"outcome"</span>, <span class="str">"committed"</span>)
 <span class="cm">// metrics — expose /metrics for Prometheus (RED: rate, errors, duration)</span>
 mux.<span class="fn">Handle</span>(<span class="str">"/metrics"</span>, promhttp.<span class="fn">Handler</span>())
 <span class="cm">// traces — OpenTelemetry span per request, propagated via context</span>
-ctx, span := tracer.<span class="fn">Start</span>(ctx, <span class="str">"weather.Get"</span>); <span class="kw">defer</span> span.<span class="fn">End</span>()</pre>
+ctx, span := tracer.<span class="fn">Start</span>(ctx, <span class="str">"ledger.Pay"</span>); <span class="kw">defer</span> span.<span class="fn">End</span>()</pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Defend the log line above: why log <code>tx_id</code> and <code>outcome</code> but not the amount or the account IDs? (Logs are copied to systems with weaker access controls than your DB — anything in them is effectively public inside the company. Correlate by ID; look up sensitive detail in the source of truth.)</div>
+      </div>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div>Hit the API under a small load (<code>hey -n 200 localhost:8080/v1/weather/London</code>), then <code>curl localhost:8080/metrics</code> and watch the request counter and latency histogram populate. That's the RED method live.</div>
+        <div>Load the balance endpoint (<code>hey -n 200 localhost:8080/v1/accounts/a1/balance</code>), then <code>curl localhost:8080/metrics</code> — watch the request counter and latency histogram populate, and confirm your cache-hit metric climbs after the first request. That's the RED method live.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">06</span><h2>Deploy to the cloud</h2></div>
-      <p>Push the image to a registry (ECR) and run it on managed infra — EKS (Kubernetes) or ECS (simpler). Use RDS for Postgres, ElastiCache for Redis, IAM roles for credentials (L04).</p>
+      <p>Push the image to a registry (ECR) and run it on managed infra — EKS (Kubernetes) or ECS (simpler). Use RDS for Postgres, ElastiCache for Redis, MSK for Kafka, IAM roles for credentials (L04).</p>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Final architecture defense: where do secrets come from in production, and why is an IAM role better than baking AWS keys into the image? (L04: roles issue short-lived, rotby credentials scoped least-privilege — nothing sensitive in the image or repo.)</div>
+        <div>Final architecture defense: where do secrets come from in production, and why is an IAM role better than baking AWS keys into the image? (L04: roles issue short-lived credentials scoped least-privilege — nothing sensitive in the image or repo. For a payments company this is not hygiene, it's compliance.)</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">★</span><h2>You've built a hireable portfolio</h2></div>
-      <p class="sub">Stand back: you now have a concurrent, cache-backed, observable Go microservice, containerized and deployed with CI/CD. That single project touches <strong>every</strong> recurring requirement from the PT · NL · LU · BE · UK listings — concurrency, APIs, gRPC, Postgres, Redis, Docker, Kubernetes, AWS, testing, observability. Put it on GitHub with a clear README and it becomes your strongest interview asset.</p>
+      <p class="sub">Stand back: you now have a JWT-protected, idempotent, double-entry payments ledger on Postgres, Redis and Kafka — containerized, deployed with CI/CD, and observable. That single project touches <strong>every</strong> recurring requirement from the PT · NL · LU · BE · UK listings, and it speaks the native language of the Portuguese and Luxembourgish fintech employers in your research. Put it on GitHub with a clear README and it becomes your strongest interview asset.</p>
     </section>
   </main>
 </div>
 
 <footer class="foot">
   <div class="wrap">
-    <div><b>P04 · Ship It</b> — applies L04 &amp; L06. The capstone of the curriculum.</div>
+    <div><b>P04 · Ship the Ledger</b> — Fintech route. Applies L04 &amp; L06. The capstone of the route.</div>
     <a href="./index.html">← Back to the curriculum</a>
   </div>
 </footer>

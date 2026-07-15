@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Learn Go by Building — P01 Weather CLI</title>
+<title>Learn Go by Building — P01 FX Rates CLI</title>
 <style>
   :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
   @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
@@ -56,9 +56,9 @@
 <header class="hero">
   <div class="wrap">
     <a class="backlink" href="./index.html">← Curriculum</a>
-    <p class="eyebrow" style="margin-top:14px;">Track B · Weather route · P01 · beginner</p>
-    <h1>Build a <span class="cy">Weather CLI</span> in Go.</h1>
-    <p class="lede">A hands-on build. You'll write every line yourself; this module gives the plan, the grilling, and the checkpoints. It applies concept module <strong>L01 · Foundations</strong>.</p>
+    <p class="eyebrow" style="margin-top:14px;">Track B · Fintech route · P01 · beginner</p>
+    <h1>Build an <span class="cy">FX rates CLI</span> in Go.</h1>
+    <p class="lede">A hands-on build. You'll write every line yourself; this module gives the plan, the grilling, and the checkpoints. It applies concept module <strong>L01 · Foundations</strong> — same skills as the weather route, money-flavored.</p>
     <div class="meta-row">
       <span class="chip">🔨 <b>Build module</b></span>
       <span class="chip">📦 Applies <b>L01</b></span>
@@ -73,8 +73,8 @@
       <div class="goal">
         <h3>What you'll ship</h3>
         <ul>
-          <li>A command <code>weather London</code> that prints live conditions</li>
-          <li>A real HTTP call, JSON decoded into a <code>struct</code></li>
+          <li>A command <code>rates EUR USD</code> that prints the live exchange rate</li>
+          <li>A real HTTP call, JSON decoded into a <code>struct</code> — including a <code>map</code> field</li>
           <li>Honest error handling and a non-zero <strong>exit code</strong> on failure</li>
           <li>A Go module you can <code>go build</code> into a single binary</li>
         </ul>
@@ -84,7 +84,7 @@
     <section class="step">
       <div class="step-h"><span class="step-n">01</span><h2>Scaffold the module</h2></div>
       <p class="sub">Every Go project starts as a module. In your empty repo:</p>
-<pre><span class="pr">$</span> go mod init example/weather
+<pre><span class="pr">$</span> go mod init example/rates
 <span class="pr">$</span> touch main.go</pre>
       <p>That <code>go.mod</code> file is your project's identity and dependency ledger — the equivalent of <code>package.json</code> or <code>requirements.txt</code>, but built into the toolchain.</p>
       <div class="callout verify">
@@ -94,86 +94,92 @@
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">02</span><h2>Read the city from the CLI</h2></div>
-      <p>Before writing this, predict: with <code>go run . London</code>, which index of <code>os.Args</code> holds <code>"London"</code>? (Recall from L01: <code>[0]</code> is the program itself.)</p>
+      <div class="step-h"><span class="step-n">02</span><h2>Read the currency pair from the CLI</h2></div>
+      <p>Before writing this, predict: with <code>go run . EUR USD</code>, which indexes of <code>os.Args</code> hold the two currencies? (Recall from L01: <code>[0]</code> is the program itself.)</p>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Design decision to defend before you code: what should happen when the user runs <code>weather</code> with <strong>no</strong> city? Print usage and exit non-zero? Default to a city? Decide now — that choice shapes your <code>main</code>.</div>
+        <div>Design decisions to defend before you code: what happens on <code>rates</code> with no arguments? And on <code>rates eur usd</code> in lowercase — reject it, or normalize with <code>strings.ToUpper</code>? Decide <em>where</em> input cleanup lives; that choice shapes your <code>main</code>.</div>
       </div>
 <pre><span class="kw">func</span> <span class="fn">main</span>() {
-    <span class="kw">if</span> <span class="fn">len</span>(os.Args) &lt; <span class="ty">2</span> {
-        fmt.<span class="fn">Fprintln</span>(os.Stderr, <span class="str">"usage: weather &lt;city&gt;"</span>)
+    <span class="kw">if</span> <span class="fn">len</span>(os.Args) &lt; <span class="ty">3</span> {
+        fmt.<span class="fn">Fprintln</span>(os.Stderr, <span class="str">"usage: rates &lt;base&gt; &lt;quote&gt;"</span>)
         os.<span class="fn">Exit</span>(<span class="ty">1</span>)   <span class="cm">// non-zero = failure, the Unix way</span>
     }
-    city := os.Args[<span class="ty">1</span>]
+    base  := strings.<span class="fn">ToUpper</span>(os.Args[<span class="ty">1</span>])
+    quote := strings.<span class="fn">ToUpper</span>(os.Args[<span class="ty">2</span>])
     <span class="cm">// ... next step wires the fetch</span>
 }</pre>
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">03</span><h2>Call the weather API</h2></div>
-      <p>Use a free endpoint like <code>wttr.in</code> (no key needed) or Open-Meteo. The key learning here is the <strong>error idiom</strong> and <code>defer</code> from L01 — every I/O call returns an <code>error</code> you must handle.</p>
-<pre><span class="kw">func</span> <span class="fn">fetch</span>(city <span class="ty">string</span>) ([]<span class="ty">byte</span>, <span class="ty">error</span>) {
-    url := fmt.<span class="fn">Sprintf</span>(<span class="str">"https://wttr.in/%s?format=j1"</span>, city)
+      <div class="step-h"><span class="step-n">03</span><h2>Call the FX API</h2></div>
+      <p>Use the free, key-less <code>frankfurter.dev</code> (ECB reference rates). The key learning here is the <strong>error idiom</strong> and <code>defer</code> from L01 — every I/O call returns an <code>error</code> you must handle.</p>
+<pre><span class="kw">func</span> <span class="fn">fetch</span>(base, quote <span class="ty">string</span>) ([]<span class="ty">byte</span>, <span class="ty">error</span>) {
+    url := fmt.<span class="fn">Sprintf</span>(<span class="str">"https://api.frankfurter.dev/v1/latest?base=%s&amp;symbols=%s"</span>, base, quote)
     resp, err := http.<span class="fn">Get</span>(url)
     <span class="kw">if</span> err != <span class="kw">nil</span> {
-        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"requesting weather: %w"</span>, err)
+        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"requesting rate: %w"</span>, err)
     }
     <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()   <span class="cm">// runs on return — no leaks</span>
     <span class="kw">if</span> resp.StatusCode != <span class="ty">200</span> {
-        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"weather API returned %d"</span>, resp.StatusCode)
+        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"FX API returned %d (unknown currency?)"</span>, resp.StatusCode)
     }
     <span class="kw">return</span> io.<span class="fn">ReadAll</span>(resp.Body)
 }</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Why return <code>([]byte, error)</code> instead of printing inside <code>fetch</code>? (Answer: separation of concerns — <code>fetch</code> gets data, <code>main</code> decides how to present and how to fail. This is what makes it testable in Project P3.)</div>
+        <div>Why return <code>([]byte, error)</code> instead of printing inside <code>fetch</code>? (Answer: separation of concerns — <code>fetch</code> gets data, <code>main</code> decides how to present and how to fail. This is what makes it testable when this code grows into the P3 ledger.)</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">04</span><h2>Decode JSON into a struct</h2></div>
-      <p>This is the L01 payoff: <strong>struct tags</strong>. The API returns nested JSON; you model only the fields you need and tag them to match.</p>
-<pre><span class="kw">type</span> <span class="ty">Report</span> <span class="kw">struct</span> {
-    Current []<span class="kw">struct</span> {
-        TempC <span class="ty">string</span> <span class="cm">`json:"temp_C"`</span>
-        Desc  []<span class="kw">struct</span>{ Value <span class="ty">string</span> <span class="cm">`json:"value"`</span> } <span class="cm">`json:"weatherDesc"`</span>
-    } <span class="cm">`json:"current_condition"`</span>
+      <p>This is the L01 payoff: <strong>struct tags</strong> — plus one twist the weather route doesn't have. The <code>rates</code> object has currency codes as <em>keys</em>, so you model it as a <code>map</code>, not a struct.</p>
+<pre><span class="cm">// {"base":"EUR","date":"2026-07-14","rates":{"USD":1.1721}}</span>
+<span class="kw">type</span> <span class="ty">Quote</span> <span class="kw">struct</span> {
+    Base  <span class="ty">string</span>             <span class="cm">`json:"base"`</span>
+    Date  <span class="ty">string</span>             <span class="cm">`json:"date"`</span>
+    Rates <span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">float64</span> <span class="cm">`json:"rates"`</span>
 }
 
-<span class="kw">var</span> r <span class="ty">Report</span>
-<span class="kw">if</span> err := json.<span class="fn">Unmarshal</span>(data, &amp;r); err != <span class="kw">nil</span> {
+<span class="kw">var</span> q <span class="ty">Quote</span>
+<span class="kw">if</span> err := json.<span class="fn">Unmarshal</span>(data, &amp;q); err != <span class="kw">nil</span> {
     <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"decoding response: %w"</span>, err)
-}</pre>
+}
+rate, ok := q.Rates[quote]   <span class="cm">// comma-ok: was the key present?</span></pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Why is <code>Rates</code> a <code>map[string]float64</code> instead of a struct with a <code>USD</code> field? (Because the keys are <em>data</em>, not schema — they change per request. Struct fields are for fixed shapes; maps are for dynamic keys.)</div>
+      </div>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div><code>go run . London</code> should now print a real temperature. If you get a zero value where data should be, your struct tag doesn't match the JSON key — inspect the raw response with <code>go run . London | head</code> temporarily.</div>
+        <div><code>go run . EUR USD</code> should print a plausible rate. If you get <code>0</code>, either a struct tag doesn't match or you skipped the comma-ok check — dump the raw body temporarily and compare keys.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">05</span><h2>Present &amp; ship</h2></div>
-      <p>Format the output, exit non-zero on any error, then build a real binary.</p>
-<pre><span class="pr">$</span> go build -o weather .
-<span class="pr">$</span> ./weather Lisbon
-Lisbon: 24°C, Sunny
+      <p>Format the output, exit non-zero on any error, then build a real binary. (Displaying with <code>float64</code> is fine; <em>storing and adding</em> money as floats is not — the P03 ledger will grill you hard on that.)</p>
+<pre><span class="pr">$</span> go build -o rates .
+<span class="pr">$</span> ./rates EUR USD
+1 EUR = 1.1721 USD (2026-07-14)
 <span class="pr">$</span> echo $?      <span class="cm"># 0 on success, 1 on failure</span></pre>
       <div class="callout verify">
         <span class="tag">Ship checklist</span>
-        <div><code>gofmt -w .</code> (canonical formatting) · <code>go vet ./...</code> (catches bugs) · try an invalid city and confirm you get a clean error + non-zero exit, not a panic.</div>
+        <div><code>gofmt -w .</code> (canonical formatting) · <code>go vet ./...</code> (catches bugs) · try <code>./rates EUR XYZ</code> and confirm you get a clean error + non-zero exit, not a panic or a silent <code>0</code>.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">→</span><h2>Where this leads</h2></div>
-      <p class="sub">You now have the shape of every Go program: parse input → do I/O with explicit errors → decode → present. Project <strong>P02</strong> takes this exact <code>fetch</code> and runs it across many cities at once with a worker pool — bringing in concept module <strong>L02 · Concurrency</strong>.</p>
+      <p class="sub">You now have the shape of every Go program: parse input → do I/O with explicit errors → decode → present. Project <strong>P02</strong> takes this exact <code>fetch</code> and revalues a whole portfolio of positions at once with a worker pool — bringing in concept module <strong>L02 · Concurrency</strong>.</p>
     </section>
   </main>
 </div>
 
 <footer class="foot">
   <div class="wrap">
-    <div><b>P01 · Weather CLI</b> — Learn Go by Building. Applies L01; feeds P02.</div>
+    <div><b>P01 · FX Rates CLI</b> — Fintech route. Applies L01; feeds P02.</div>
     <a href="./index.html">← Back to the curriculum</a>
   </div>
 </footer>

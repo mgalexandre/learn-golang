@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Learn Go by Building — P02 Concurrent Fetcher</title>
+<title>Learn Go by Building — P02 Link Checker</title>
 <style>
   :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
   @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
@@ -50,9 +50,9 @@
 <header class="hero">
   <div class="wrap">
     <a class="backlink" href="./index.html">← Curriculum</a>
-    <p class="eyebrow" style="margin-top:14px;">Track B · Weather route · P02 · intermediate</p>
-    <h1>A <span class="cy">concurrent</span> multi-city fetcher.</h1>
-    <p class="lede">Take P01's <code style="font-size:.8em">fetch</code> and run it across dozens of cities at once — safely bounded, with timeouts and clean partial-failure handling. Applies concept module <strong>L02 · Concurrency</strong>.</p>
+    <p class="eyebrow" style="margin-top:14px;">Track B · DevTools route · P02 · intermediate</p>
+    <h1>A <span class="cy">concurrent</span> link checker.</h1>
+    <p class="lede">Sweep hundreds of URLs for dead links at once — safely bounded, with timeouts, polite rate limiting, and a CI-friendly exit code. Applies concept module <strong>L02 · Concurrency</strong>.</p>
     <div class="meta-row">
       <span class="chip">🔨 <b>Build module</b></span>
       <span class="chip">📦 Applies <b>L02</b></span>
@@ -67,86 +67,102 @@
       <div class="goal">
         <h3>What you'll ship</h3>
         <ul>
-          <li><code>weather London Lisbon Paris ...</code> fetched <strong>concurrently</strong></li>
+          <li><code>linkcheck urls.txt</code> — every URL probed <strong>concurrently</strong></li>
           <li>A bounded <strong>worker pool</strong> — never more than N in flight</li>
-          <li>A per-request <code>context</code> timeout so one slow city can't stall the batch</li>
-          <li>A rate limiter to stay under the API's cap</li>
-          <li>Partial results: one city failing doesn't sink the rest</li>
+          <li>A per-request <code>context</code> timeout so one hanging server can't stall the sweep</li>
+          <li>A rate limiter so you're a polite citizen, not a DoS</li>
+          <li>Exit code <code>1</code> if any link is dead — so CI can run it</li>
         </ul>
       </div>
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">01</span><h2>Make fetch context-aware</h2></div>
-      <p>First refactor P01's <code>fetch</code> to take a <code>context.Context</code> as its first parameter (the L02/L03 convention). This is what lets the caller impose a timeout.</p>
-<pre><span class="kw">func</span> <span class="fn">fetch</span>(ctx context.Context, city <span class="ty">string</span>) (Report, <span class="ty">error</span>) {
-    req, _ := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"GET"</span>, urlFor(city), <span class="kw">nil</span>)
+      <div class="step-h"><span class="step-n">01</span><h2>Write a context-aware check</h2></div>
+      <p>The unit of work: probe one URL with a <code>HEAD</code> request (you want the status, not the body), taking <code>context.Context</code> as the first parameter — the L02/L03 convention that lets the caller impose a timeout.</p>
+<pre><span class="kw">func</span> <span class="fn">check</span>(ctx context.Context, url <span class="ty">string</span>) (<span class="ty">int</span>, <span class="ty">error</span>) {
+    req, err := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"HEAD"</span>, url, <span class="kw">nil</span>)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="ty">0</span>, err
+    }
     resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
-    <span class="cm">// ... same decode as P01</span>
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="ty">0</span>, err          <span class="cm">// transport failure: DNS, refused, timeout</span>
+    }
+    resp.Body.<span class="fn">Close</span>()
+    <span class="kw">return</span> resp.StatusCode, <span class="kw">nil</span>  <span class="cm">// a 404 is a *successful* check</span>
 }</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Predict before building: if you give each city a 2-second timeout but run them sequentially, how long does a 30-city batch take worst case? And concurrently with a pool of 5? (That gap is the whole point of this project.)</div>
+        <div>Sharpen the distinction that comment makes: a <code>404</code> means the check <em>worked</em> and found a dead link; a DNS failure means the check itself failed. Why must your report treat those differently? And: predict the worst-case duration of 300 URLs × 2s timeout run sequentially, versus a pool of 10.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">02</span><h2>Build the worker pool</h2></div>
-      <p>Recreate the L02 pattern: a <code>jobs</code> channel of cities, N workers, a <code>results</code> channel. Bounding concurrency is what keeps you from opening 500 sockets at once.</p>
-<pre><span class="kw">type</span> <span class="ty">result</span> <span class="kw">struct</span>{ city <span class="ty">string</span>; report Report; err <span class="ty">error</span> }
+      <p>Recreate the L02 pattern: a <code>jobs</code> channel of URLs, N workers, a <code>results</code> channel. Bounding concurrency is what keeps you from opening 500 sockets at once.</p>
+<pre><span class="kw">type</span> <span class="ty">result</span> <span class="kw">struct</span>{ url <span class="ty">string</span>; code <span class="ty">int</span>; err <span class="ty">error</span> }
 
 jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>)
 out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
 
 <span class="kw">var</span> wg sync.WaitGroup
-<span class="kw">for</span> i := <span class="ty">0</span>; i &lt; <span class="ty">5</span>; i++ {          <span class="cm">// 5 workers</span>
+<span class="kw">for</span> i := <span class="ty">0</span>; i &lt; <span class="ty">10</span>; i++ {         <span class="cm">// 10 workers</span>
     wg.<span class="fn">Add</span>(<span class="ty">1</span>)
     <span class="kw">go</span> <span class="kw">func</span>() {
         <span class="kw">defer</span> wg.<span class="fn">Done</span>()
-        <span class="kw">for</span> city := <span class="kw">range</span> jobs {
-            rep, err := <span class="fn">fetch</span>(ctx, city)
-            out &lt;- result{city, rep, err}   <span class="cm">// carry the error, don't crash</span>
+        <span class="kw">for</span> url := <span class="kw">range</span> jobs {
+            code, err := <span class="fn">check</span>(ctx, url)
+            out &lt;- result{url, code, err}   <span class="cm">// carry the error, don't crash</span>
         }
     }()
 }</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Why send the <code>error</code> inside the <code>result</code> struct instead of logging it in the worker? (Answer: the collector decides how to report; a failed city becomes a row in the output, not a lost goroutine — that's "partial results.")</div>
+        <div>Why send the <code>error</code> inside the <code>result</code> struct instead of logging it in the worker? (Answer: the collector decides how to report; an unreachable URL becomes a row in the output, not a lost goroutine — that's "partial results.")</div>
       </div>
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">03</span><h2>Feed jobs, close, collect</h2></div>
-      <p>The classic choreography: a goroutine closes <code>out</code> once all workers finish, so the collector's <code>range</code> terminates cleanly.</p>
+      <div class="step-h"><span class="step-n">03</span><h2>Feed jobs, close, collect — and set the exit code</h2></div>
+      <p>The classic choreography: a goroutine closes <code>out</code> once all workers finish, so the collector's <code>range</code> terminates cleanly. The collector counts the dead links.</p>
 <pre><span class="kw">go</span> <span class="kw">func</span>() {                     <span class="cm">// producer</span>
-    <span class="kw">for</span> _, c := <span class="kw">range</span> cities { jobs &lt;- c }
+    <span class="kw">for</span> _, u := <span class="kw">range</span> urls { jobs &lt;- u }
     <span class="kw">close</span>(jobs)                    <span class="cm">// no more work → workers exit their range</span>
 }()
 <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="kw">close</span>(out) }()  <span class="cm">// all done → stop the collector</span>
 
+dead := <span class="ty">0</span>
 <span class="kw">for</span> r := <span class="kw">range</span> out {           <span class="cm">// collect until out closes</span>
-    <span class="kw">if</span> r.err != <span class="kw">nil</span> {
-        fmt.<span class="fn">Printf</span>(<span class="str">"%-10s ERROR: %v\n"</span>, r.city, r.err)
-        <span class="kw">continue</span>
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> r.err != <span class="kw">nil</span>:
+        fmt.<span class="fn">Printf</span>(<span class="str">"FAIL %-50s %v\n"</span>, r.url, r.err); dead++
+    <span class="kw">case</span> r.code &gt;= <span class="ty">400</span>:
+        fmt.<span class="fn">Printf</span>(<span class="str">"DEAD %-50s %d\n"</span>, r.url, r.code); dead++
+    <span class="kw">default</span>:
+        fmt.<span class="fn">Printf</span>(<span class="str">"OK   %-50s %d\n"</span>, r.url, r.code)
     }
-    fmt.<span class="fn">Printf</span>(<span class="str">"%-10s %s\n"</span>, r.city, r.report.Summary())
-}</pre>
+}
+<span class="kw">if</span> dead &gt; <span class="ty">0</span> { os.<span class="fn">Exit</span>(<span class="ty">1</span>) }   <span class="cm">// CI-friendly: red build on dead links</span></pre>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div>Run with a bad city mixed in: <code>go run . London NotACity Paris</code>. You should see two good rows and one <code>ERROR</code> row — proof that one failure doesn't abort the batch. Then <code>go run -race .</code> to confirm no data races on the shared channels.</div>
+        <div>Feed it a file with a known-dead URL (e.g. <code>https://example.com/nope</code>) mixed into good ones. You should see <code>OK</code> rows and one <code>DEAD</code> row, and <code>echo $?</code> prints <code>1</code>. Then <code>go run -race .</code> to confirm no data races — note <code>dead</code> is only touched by the collector goroutine, which is <em>why</em> it's race-free.</div>
+      </div>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>Why does the exit code matter more than the printed report? (Because this tool's real customer is a CI pipeline — the same reason your P01 CLI exits non-zero. Machines read exit codes; humans read the report.)</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">04</span><h2>Add a rate limiter</h2></div>
-      <p>Free APIs cap requests. A <code>time.Ticker</code> (or <code>golang.org/x/time/rate</code>) throttles workers so you fetch, say, 5 per second regardless of pool size.</p>
+      <p>Hammering one host with 10 workers is impolite (and gets you blocked). A <code>time.Ticker</code> (or <code>golang.org/x/time/rate</code>) throttles the pool to, say, 5 requests per second regardless of pool size.</p>
 <pre>limiter := time.<span class="fn">NewTicker</span>(<span class="ty">200</span> * time.Millisecond)  <span class="cm">// ~5 req/s</span>
 <span class="kw">defer</span> limiter.<span class="fn">Stop</span>()
-<span class="cm">// inside the worker, before fetch:</span>
+<span class="cm">// inside the worker, before check:</span>
 &lt;-limiter.C   <span class="cm">// block until the next tick</span></pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Trade-off to reason about: more workers make you faster, but the rate limiter caps throughput anyway. So what's the <em>right</em> worker count? (Hint: enough to keep the limiter saturated while requests are in-flight, not more.)</div>
+        <div>Trade-off to reason about: more workers make you faster, but the rate limiter caps throughput anyway. So what's the <em>right</em> worker count? (Hint: enough to keep the limiter saturated while requests are in-flight, not more.) Stretch: a global limiter throttles <em>all</em> hosts together — what would a per-host limiter need? (A <code>map</code> of limiters, and a mutex to guard it — L02's <code>sync</code> section, applied.)</div>
       </div>
     </section>
 
@@ -154,27 +170,31 @@ out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
       <div class="step-h"><span class="step-n">05</span><h2>Consider errgroup</h2></div>
       <p>Once you understand the manual version, meet <code>golang.org/x/sync/errgroup</code> — it bundles the WaitGroup, error propagation, and context cancellation. If one task fails, it can cancel the rest.</p>
 <pre>g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
-g.<span class="fn">SetLimit</span>(<span class="ty">5</span>)                     <span class="cm">// built-in concurrency bound</span>
-<span class="kw">for</span> _, city := <span class="kw">range</span> cities {
-    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> { <span class="kw">return</span> <span class="fn">fetchInto</span>(ctx, city, &amp;results) })
+g.<span class="fn">SetLimit</span>(<span class="ty">10</span>)                    <span class="cm">// built-in concurrency bound</span>
+<span class="kw">for</span> _, url := <span class="kw">range</span> urls {
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> { <span class="kw">return</span> <span class="fn">checkInto</span>(ctx, url, &amp;report) })
 }
 err := g.<span class="fn">Wait</span>()   <span class="cm">// first non-nil error, or nil</span></pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>For a link checker, is fail-fast even desirable? (Probably not — you want the <em>full</em> report, so a dead link should return <code>nil</code> from the closure and be recorded, reserving errors for "the sweep itself broke." Knowing when <em>not</em> to cancel is as idiomatic as knowing how.)</div>
+      </div>
       <div class="callout verify">
         <span class="tag">Ship checklist</span>
-        <div><code>go vet ./...</code> · <code>go test -race ./...</code> · time it: <code>time go run . &lt;20 cities&gt;</code> should be roughly (slowest city), not the sum. That speedup <em>is</em> the concurrency win — the thing interviewers want you to explain.</div>
+        <div><code>go vet ./...</code> · <code>go test -race ./...</code> · time it: <code>time go run . urls.txt</code> with 50 URLs should be roughly (slowest URL), not the sum. That speedup <em>is</em> the concurrency win — the thing interviewers want you to explain.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">→</span><h2>Where this leads</h2></div>
-      <p class="sub">You've now applied every L02 concept under real constraints — the exact "scalable, resilient services" phrasing from the listings. Project <strong>P03</strong> puts this logic behind an HTTP + gRPC API with a Postgres cache, pulling in <strong>L03</strong> and <strong>L05</strong>.</p>
+      <p class="sub">You've now applied every L02 concept under real constraints — the exact "scalable, resilient services" phrasing from the listings. Project <strong>P03</strong> moves from checking URLs to <em>serving</em> them: a URL shortener with a Redis-cached redirect hot path, pulling in <strong>L03</strong>, <strong>L05</strong> and <strong>L07</strong>.</p>
     </section>
   </main>
 </div>
 
 <footer class="foot">
   <div class="wrap">
-    <div><b>P02 · Concurrent Fetcher</b> — applies L02; feeds P03.</div>
+    <div><b>P02 · Link Checker</b> — DevTools route. Applies L02; feeds P03.</div>
     <a href="./index.html">← Back to the curriculum</a>
   </div>
 </footer>

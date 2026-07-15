@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Learn Go by Building — P02 Concurrent Fetcher</title>
+<title>Learn Go by Building — P02 Portfolio Pricer</title>
 <style>
   :root{--ground:#F4F8F9;--surface:#FFFFFF;--surface-2:#ECF3F4;--ink:#0E2127;--ink-soft:#3C555C;--ink-faint:#6B8189;--line:#D3E0E2;--accent:#007D9C;--accent-bright:#00ADD8;--accent-wash:#E1F1F5;--amber:#B26A16;--amber-wash:#FBEFDD;--green:#2F8A5F;--green-wash:#E0F1E8;--code-bg:#0E2127;--code-ink:#D6E7EA;--code-dim:#6E8B92;--shadow:0 1px 2px rgba(14,33,39,.06),0 8px 24px rgba(14,33,39,.06);--serif:"Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;--sans:ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;}
   @media (prefers-color-scheme: dark){:root{--ground:#0B181D;--surface:#10242B;--surface-2:#16303A;--ink:#E7F1F2;--ink-soft:#A9C0C5;--ink-faint:#7A959B;--line:#234049;--accent:#35C4E6;--accent-bright:#57D3F0;--accent-wash:#123039;--amber:#E0A048;--amber-wash:#2C2415;--green:#58BC8B;--green-wash:#14291F;--code-bg:#071216;--code-ink:#CFE3E6;--code-dim:#5E7B82;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);}}
@@ -50,9 +50,9 @@
 <header class="hero">
   <div class="wrap">
     <a class="backlink" href="./index.html">← Curriculum</a>
-    <p class="eyebrow" style="margin-top:14px;">Track B · Weather route · P02 · intermediate</p>
-    <h1>A <span class="cy">concurrent</span> multi-city fetcher.</h1>
-    <p class="lede">Take P01's <code style="font-size:.8em">fetch</code> and run it across dozens of cities at once — safely bounded, with timeouts and clean partial-failure handling. Applies concept module <strong>L02 · Concurrency</strong>.</p>
+    <p class="eyebrow" style="margin-top:14px;">Track B · Fintech route · P02 · intermediate</p>
+    <h1>A <span class="cy">concurrent</span> portfolio pricer.</h1>
+    <p class="lede">Take P01's <code style="font-size:.8em">fetch</code> and revalue a whole portfolio of currency positions at once — safely bounded, with timeouts and clean partial-failure handling. Applies concept module <strong>L02 · Concurrency</strong>.</p>
     <div class="meta-row">
       <span class="chip">🔨 <b>Build module</b></span>
       <span class="chip">📦 Applies <b>L02</b></span>
@@ -67,11 +67,11 @@
       <div class="goal">
         <h3>What you'll ship</h3>
         <ul>
-          <li><code>weather London Lisbon Paris ...</code> fetched <strong>concurrently</strong></li>
+          <li><code>pricer EURUSD GBPUSD CHFUSD ...</code> quoted <strong>concurrently</strong></li>
           <li>A bounded <strong>worker pool</strong> — never more than N in flight</li>
-          <li>A per-request <code>context</code> timeout so one slow city can't stall the batch</li>
+          <li>A per-request <code>context</code> timeout so one slow quote can't stall the batch</li>
           <li>A rate limiter to stay under the API's cap</li>
-          <li>Partial results: one city failing doesn't sink the rest</li>
+          <li>Partial results: an unpriced position is <em>reported</em>, never guessed</li>
         </ul>
       </div>
     </section>
@@ -79,21 +79,21 @@
     <section class="step">
       <div class="step-h"><span class="step-n">01</span><h2>Make fetch context-aware</h2></div>
       <p>First refactor P01's <code>fetch</code> to take a <code>context.Context</code> as its first parameter (the L02/L03 convention). This is what lets the caller impose a timeout.</p>
-<pre><span class="kw">func</span> <span class="fn">fetch</span>(ctx context.Context, city <span class="ty">string</span>) (Report, <span class="ty">error</span>) {
-    req, _ := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"GET"</span>, urlFor(city), <span class="kw">nil</span>)
+<pre><span class="kw">func</span> <span class="fn">fetch</span>(ctx context.Context, pair <span class="ty">string</span>) (Quote, <span class="ty">error</span>) {
+    req, _ := http.<span class="fn">NewRequestWithContext</span>(ctx, <span class="str">"GET"</span>, urlFor(pair), <span class="kw">nil</span>)
     resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
     <span class="cm">// ... same decode as P01</span>
 }</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Predict before building: if you give each city a 2-second timeout but run them sequentially, how long does a 30-city batch take worst case? And concurrently with a pool of 5? (That gap is the whole point of this project.)</div>
+        <div>Predict before building: if you give each quote a 2-second timeout but run them sequentially, how long does a 30-position portfolio take worst case? And concurrently with a pool of 5? (That gap is the whole point of this project.)</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">02</span><h2>Build the worker pool</h2></div>
-      <p>Recreate the L02 pattern: a <code>jobs</code> channel of cities, N workers, a <code>results</code> channel. Bounding concurrency is what keeps you from opening 500 sockets at once.</p>
-<pre><span class="kw">type</span> <span class="ty">result</span> <span class="kw">struct</span>{ city <span class="ty">string</span>; report Report; err <span class="ty">error</span> }
+      <p>Recreate the L02 pattern: a <code>jobs</code> channel of pairs, N workers, a <code>results</code> channel. Bounding concurrency is what keeps you from opening 500 sockets at once.</p>
+<pre><span class="kw">type</span> <span class="ty">result</span> <span class="kw">struct</span>{ pair <span class="ty">string</span>; quote Quote; err <span class="ty">error</span> }
 
 jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>)
 out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
@@ -103,37 +103,42 @@ out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
     wg.<span class="fn">Add</span>(<span class="ty">1</span>)
     <span class="kw">go</span> <span class="kw">func</span>() {
         <span class="kw">defer</span> wg.<span class="fn">Done</span>()
-        <span class="kw">for</span> city := <span class="kw">range</span> jobs {
-            rep, err := <span class="fn">fetch</span>(ctx, city)
-            out &lt;- result{city, rep, err}   <span class="cm">// carry the error, don't crash</span>
+        <span class="kw">for</span> pair := <span class="kw">range</span> jobs {
+            q, err := <span class="fn">fetch</span>(ctx, pair)
+            out &lt;- result{pair, q, err}   <span class="cm">// carry the error, don't crash</span>
         }
     }()
 }</pre>
       <div class="callout grill">
         <span class="tag">Grill</span>
-        <div>Why send the <code>error</code> inside the <code>result</code> struct instead of logging it in the worker? (Answer: the collector decides how to report; a failed city becomes a row in the output, not a lost goroutine — that's "partial results.")</div>
+        <div>Why send the <code>error</code> inside the <code>result</code> struct instead of logging it in the worker? In finance the answer has teeth: a position with no fresh price must show up as <strong>UNPRICED</strong> in the report — silently dropping it would misstate the portfolio's value.</div>
       </div>
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">03</span><h2>Feed jobs, close, collect</h2></div>
-      <p>The classic choreography: a goroutine closes <code>out</code> once all workers finish, so the collector's <code>range</code> terminates cleanly.</p>
+      <div class="step-h"><span class="step-n">03</span><h2>Feed jobs, close, collect — and total</h2></div>
+      <p>The classic choreography: a goroutine closes <code>out</code> once all workers finish, so the collector's <code>range</code> terminates cleanly. The collector also totals the priced positions.</p>
 <pre><span class="kw">go</span> <span class="kw">func</span>() {                     <span class="cm">// producer</span>
-    <span class="kw">for</span> _, c := <span class="kw">range</span> cities { jobs &lt;- c }
+    <span class="kw">for</span> _, p := <span class="kw">range</span> pairs { jobs &lt;- p }
     <span class="kw">close</span>(jobs)                    <span class="cm">// no more work → workers exit their range</span>
 }()
 <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="kw">close</span>(out) }()  <span class="cm">// all done → stop the collector</span>
 
+<span class="kw">var</span> total <span class="ty">float64</span>
+unpriced := <span class="ty">0</span>
 <span class="kw">for</span> r := <span class="kw">range</span> out {           <span class="cm">// collect until out closes</span>
     <span class="kw">if</span> r.err != <span class="kw">nil</span> {
-        fmt.<span class="fn">Printf</span>(<span class="str">"%-10s ERROR: %v\n"</span>, r.city, r.err)
+        fmt.<span class="fn">Printf</span>(<span class="str">"%-8s UNPRICED: %v\n"</span>, r.pair, r.err)
+        unpriced++
         <span class="kw">continue</span>
     }
-    fmt.<span class="fn">Printf</span>(<span class="str">"%-10s %s\n"</span>, r.city, r.report.Summary())
-}</pre>
+    total += r.quote.Value()
+    fmt.<span class="fn">Printf</span>(<span class="str">"%-8s %.4f\n"</span>, r.pair, r.quote.Rate())
+}
+fmt.<span class="fn">Printf</span>(<span class="str">"total %.2f (%d positions unpriced)\n"</span>, total, unpriced)</pre>
       <div class="callout verify">
         <span class="tag">Verify</span>
-        <div>Run with a bad city mixed in: <code>go run . London NotACity Paris</code>. You should see two good rows and one <code>ERROR</code> row — proof that one failure doesn't abort the batch. Then <code>go run -race .</code> to confirm no data races on the shared channels.</div>
+        <div>Run with a bogus pair mixed in: <code>go run . EURUSD XXXYYY GBPUSD</code>. You should see two priced rows, one <code>UNPRICED</code> row, and an honest summary line. Then <code>go run -race .</code> to confirm no data races. (Notice <code>total</code> is only touched by the collector goroutine — that's <em>why</em> there's no race.)</div>
       </div>
     </section>
 
@@ -151,30 +156,34 @@ out  := <span class="fn">make</span>(<span class="kw">chan</span> result)
     </section>
 
     <section class="step">
-      <div class="step-h"><span class="step-n">05</span><h2>Consider errgroup</h2></div>
-      <p>Once you understand the manual version, meet <code>golang.org/x/sync/errgroup</code> — it bundles the WaitGroup, error propagation, and context cancellation. If one task fails, it can cancel the rest.</p>
+      <div class="step-h"><span class="step-n">05</span><h2>All-or-nothing mode with errgroup</h2></div>
+      <p>Once you understand the manual version, meet <code>golang.org/x/sync/errgroup</code> — it bundles the WaitGroup, error propagation, and context cancellation. If one task fails, it cancels the rest — which gives your pricer a second personality.</p>
 <pre>g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
 g.<span class="fn">SetLimit</span>(<span class="ty">5</span>)                     <span class="cm">// built-in concurrency bound</span>
-<span class="kw">for</span> _, city := <span class="kw">range</span> cities {
-    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> { <span class="kw">return</span> <span class="fn">fetchInto</span>(ctx, city, &amp;results) })
+<span class="kw">for</span> _, pair := <span class="kw">range</span> pairs {
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> { <span class="kw">return</span> <span class="fn">priceInto</span>(ctx, pair, &amp;book) })
 }
 err := g.<span class="fn">Wait</span>()   <span class="cm">// first non-nil error, or nil</span></pre>
+      <div class="callout grill">
+        <span class="tag">Grill</span>
+        <div>You now have two behaviors: step 03's <em>partial results</em> and errgroup's <em>fail-fast</em>. When would a risk system prefer aborting the whole revaluation over a partial one? (When a partial total could be mistaken for the real total — sometimes no answer beats a wrong-looking answer.) Defend which mode your CLI should default to.</div>
+      </div>
       <div class="callout verify">
         <span class="tag">Ship checklist</span>
-        <div><code>go vet ./...</code> · <code>go test -race ./...</code> · time it: <code>time go run . &lt;20 cities&gt;</code> should be roughly (slowest city), not the sum. That speedup <em>is</em> the concurrency win — the thing interviewers want you to explain.</div>
+        <div><code>go vet ./...</code> · <code>go test -race ./...</code> · time it: <code>time go run . &lt;20 pairs&gt;</code> should be roughly (slowest quote), not the sum. That speedup <em>is</em> the concurrency win — the thing interviewers want you to explain.</div>
       </div>
     </section>
 
     <section class="step">
       <div class="step-h"><span class="step-n">→</span><h2>Where this leads</h2></div>
-      <p class="sub">You've now applied every L02 concept under real constraints — the exact "scalable, resilient services" phrasing from the listings. Project <strong>P03</strong> puts this logic behind an HTTP + gRPC API with a Postgres cache, pulling in <strong>L03</strong> and <strong>L05</strong>.</p>
+      <p class="sub">You've now applied every L02 concept under real constraints — the exact "scalable, resilient services" phrasing from the listings. Project <strong>P03</strong> graduates from reading prices to <em>moving money</em>: a payments ledger behind an HTTP + gRPC API, pulling in <strong>L03</strong>, <strong>L05</strong> and <strong>L07</strong>.</p>
     </section>
   </main>
 </div>
 
 <footer class="foot">
   <div class="wrap">
-    <div><b>P02 · Concurrent Fetcher</b> — applies L02; feeds P03.</div>
+    <div><b>P02 · Portfolio Pricer</b> — Fintech route. Applies L02; feeds P03.</div>
     <a href="./index.html">← Back to the curriculum</a>
   </div>
 </footer>

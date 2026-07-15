@@ -69,6 +69,14 @@
   .st-live{background:var(--green-wash);color:var(--green);}
   .st-soon{background:var(--surface-2);color:var(--ink-faint);}
 
+  /* route tabs (project picker) */
+  .route-tabs{display:flex;gap:4px;margin-top:24px;font-family:var(--sans);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:5px;width:max-content;max-width:100%;overflow-x:auto;}
+  .route-tab{appearance:none;border:0;background:transparent;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink-soft);padding:8px 16px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-flex;gap:8px;align-items:center;transition:color .12s;}
+  .route-tab:hover{color:var(--ink);}
+  .route-tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  .route-note{font-family:var(--sans);font-size:14px;color:var(--ink-faint);margin:14px 0 0;max-width:64ch;line-height:1.6;}
+  .route-grid[hidden]{display:none;}
+
   .legend{font-family:var(--sans);font-size:13px;color:var(--ink-faint);margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;}
   .legend b{font-weight:600;}
   footer{border-top:1px solid var(--line);padding:32px 0 60px;font-family:var(--sans);color:var(--ink-faint);font-size:13.5px;}
@@ -199,8 +207,14 @@
   <section>
     <p class="eyebrow">Track B · Projects</p>
     <h2>Build modules</h2>
-    <p class="sub">The application. Each project is a portfolio-shaped build that exercises the concepts from its linked learning modules — and mirrors what these five markets actually hire you to do.</p>
-    <div class="grid">
+    <p class="sub">The application. Pick a <strong>route</strong> — three flavors of the same four-project arc. Every route applies the identical concept modules per slot (P01→L01, P02→L02, P03→L03·L05·L07, P04→L04·L06); only the domain changes, so switch whenever one bores you. The skills transfer 1:1.</p>
+    <div class="route-tabs" role="tablist" aria-label="Project route">
+      <button class="route-tab" role="tab" data-route="weather" aria-selected="true">&#x1F326;&#xFE0F; Weather</button>
+      <button class="route-tab" role="tab" data-route="fintech" aria-selected="false">&#x1F4B3; Fintech</button>
+      <button class="route-tab" role="tab" data-route="devtools" aria-selected="false">&#x1F517; DevTools</button>
+    </div>
+    <p class="route-note" id="route-note">Weather CLI → concurrent fetcher → microservice → cloud. The original arc: one domain carried from first binary to deployed service.</p>
+    <div class="grid route-grid" data-route="weather">
       <a class="card" href="./project-01-weather-cli.html">
         <span class="status st-live">Live</span>
         <span class="num">P01 · beginner</span>
@@ -230,12 +244,72 @@
         <div class="tags"><span class="t">uses L04·L06</span><span class="t">Kubernetes</span></div>
       </a>
     </div>
+    <div class="grid route-grid" data-route="fintech" hidden>
+      <a class="card" href="./fintech-p01-fx-cli.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P01 · beginner</span>
+        <h3>FX Rates CLI</h3>
+        <p>Pull live exchange rates from a free FX API into a clean command-line tool.</p>
+        <div class="tags"><span class="t">uses L01</span><span class="t">HTTP</span><span class="t">JSON maps</span></div>
+      </a>
+      <a class="card" href="./fintech-p02-portfolio-pricer.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P02 · intermediate</span>
+        <h3>Concurrent Portfolio Pricer</h3>
+        <p>Revalue a whole portfolio at once with a worker pool, <code>context</code> timeouts &amp; rate limits.</p>
+        <div class="tags"><span class="t">uses L02</span><span class="t">worker pool</span></div>
+      </a>
+      <a class="card" href="./fintech-p03-payments-ledger.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P03 · advanced</span>
+        <h3>Payments Ledger Service</h3>
+        <p>A REST + gRPC double-entry ledger on PostgreSQL and Redis, idempotent and JWT-protected, with Kafka events.</p>
+        <div class="tags"><span class="t">uses L03·L05·L07</span><span class="t">gRPC</span><span class="t">idempotency</span></div>
+      </a>
+      <a class="card" href="./fintech-p04-ship-it.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P04 · production</span>
+        <h3>Ship the Ledger</h3>
+        <p>Dockerize the ledger, add k8s probes, wire CI/CD, instrument with PII-safe logs &amp; metrics, deploy to AWS.</p>
+        <div class="tags"><span class="t">uses L04·L06</span><span class="t">Kubernetes</span></div>
+      </a>
+    </div>
+    <div class="grid route-grid" data-route="devtools" hidden>
+      <a class="card" href="./devtools-p01-repo-stats-cli.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P01 · beginner</span>
+        <h3>Repo Stats CLI</h3>
+        <p>Query the GitHub API for stars, forks &amp; issues — with real headers and honest error handling.</p>
+        <div class="tags"><span class="t">uses L01</span><span class="t">HTTP</span><span class="t">JSON</span></div>
+      </a>
+      <a class="card" href="./devtools-p02-link-checker.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P02 · intermediate</span>
+        <h3>Concurrent Link Checker</h3>
+        <p>Sweep hundreds of URLs for dead links with a bounded worker pool and a CI-friendly exit code.</p>
+        <div class="tags"><span class="t">uses L02</span><span class="t">worker pool</span></div>
+      </a>
+      <a class="card" href="./devtools-p03-url-shortener.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P03 · advanced</span>
+        <h3>URL Shortener + Analytics</h3>
+        <p>A REST + gRPC shortener on PostgreSQL and Redis with Kafka click events and an auth-protected API.</p>
+        <div class="tags"><span class="t">uses L03·L05·L07</span><span class="t">gRPC</span><span class="t">hot path</span></div>
+      </a>
+      <a class="card" href="./devtools-p04-ship-it.html">
+        <span class="status st-live">Live</span>
+        <span class="num">P04 · production</span>
+        <h3>Ship the Shortener</h3>
+        <p>Dockerize, scale to 3 replicas, wire CI/CD, watch p99 redirect latency live, deploy to AWS.</p>
+        <div class="tags"><span class="t">uses L04·L06</span><span class="t">Kubernetes</span></div>
+      </a>
+    </div>
   </section>
 
   <section>
     <p class="eyebrow">The schedule</p>
     <h2>A 6-week study plan</h2>
-    <p class="sub">Learn a concept, then apply it immediately — that alternation <em>is</em> the retrieval loop the whole method runs on. Adjust the pace to your life; the order is what matters. Each concept module is ~40 min of reading plus its drills.</p>
+    <p class="sub">Learn a concept, then apply it immediately — that alternation <em>is</em> the retrieval loop the whole method runs on. Adjust the pace to your life; the order is what matters. Each concept module is ~40 min of reading plus its drills. P01–P04 below mean <em>your chosen route's</em> projects — the plan is identical on all three.</p>
     <div class="grid">
       <div class="card">
         <span class="num">WEEK 1 · foundations</span>
@@ -285,3 +359,27 @@
     Curriculum derived from July 2026 listings on Glassdoor, Golang.cafe, golangprojects.com, Indeed &amp; Totaljobs across PT · NL · LU · BE · UK. Built as your local <a href="./module-01-foundations.html">Learn Go by Building</a> environment.
   </div>
 </footer>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.route-tab'));
+  var grids = Array.prototype.slice.call(document.querySelectorAll('.route-grid'));
+  var note = document.getElementById('route-note');
+  var notes = {
+    weather:  'Weather CLI → concurrent fetcher → microservice → cloud. The original arc: one domain carried from first binary to deployed service.',
+    fintech:  'FX CLI → portfolio pricer → payments ledger → cloud. Money-shaped: idempotency, double-entry, integer cents — the vocabulary PT/LU fintech interviews run on.',
+    devtools: 'Repo stats CLI → link checker → URL shortener → cloud. Tool-shaped: CI exit codes, hot-path caching, and the classic system-design interview question as your capstone.'
+  };
+  function pick(route) {
+    tabs.forEach(function (t) { t.setAttribute('aria-selected', t.dataset.route === route ? 'true' : 'false'); });
+    grids.forEach(function (g) { g.hidden = g.dataset.route !== route; });
+    note.textContent = notes[route];
+    try { localStorage.setItem('goRoute', route); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { pick(t.dataset.route); }); });
+  var saved = 'weather';
+  try { saved = localStorage.getItem('goRoute') || 'weather'; } catch (e) {}
+  if (!notes[saved]) saved = 'weather';
+  pick(saved);
+})();
+</script>
